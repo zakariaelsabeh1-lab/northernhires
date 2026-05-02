@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, Loader2, Download, ArrowLeft, Sparkles, AlertCircle, Printer } from 'lucide-react'
+import { Plus, Trash2, Loader2, Download, ArrowLeft, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const INPUT = 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors'
 const LABEL = 'block text-sm font-medium text-slate-700 mb-1.5'
@@ -9,34 +11,36 @@ const EMPTY_EXP = () => ({ title: '', company: '', duration: '', description: ''
 const EMPTY_EDU = () => ({ school: '', degree: '', year: '' })
 
 export default function ResumeBuilderPage() {
+  const { user } = useAuth()
   const [form, setForm] = useState({
-    fullName:   '',
-    email:      '',
-    phone:      '',
-    city:       '',
-    targetTitle:'',
-    summary:    '',
-    experience: [EMPTY_EXP()],
-    education:  [EMPTY_EDU()],
-    skills:     '',
+    fullName:    '',
+    email:       '',
+    phone:       '',
+    city:        '',
+    targetTitle: '',
+    summary:     '',
+    experience:  [EMPTY_EXP()],
+    education:   [EMPTY_EDU()],
+    skills:      '',
   })
   const [generating, setGenerating] = useState(false)
   const [resume, setResume]         = useState('')
   const [error, setError]           = useState('')
+  const [saved, setSaved]           = useState(false)
 
   function set(field, val) { setForm(f => ({ ...f, [field]: val })) }
 
   function setExp(idx, field, val) {
     setForm(f => ({ ...f, experience: f.experience.map((e, i) => i === idx ? { ...e, [field]: val } : e) }))
   }
-  function addExp() { setForm(f => ({ ...f, experience: [...f.experience, EMPTY_EXP()] })) }
-  function removeExp(idx) { setForm(f => ({ ...f, experience: f.experience.filter((_, i) => i !== idx) })) }
+  function addExp()         { setForm(f => ({ ...f, experience: [...f.experience, EMPTY_EXP()] })) }
+  function removeExp(idx)   { setForm(f => ({ ...f, experience: f.experience.filter((_, i) => i !== idx) })) }
 
   function setEdu(idx, field, val) {
     setForm(f => ({ ...f, education: f.education.map((e, i) => i === idx ? { ...e, [field]: val } : e) }))
   }
-  function addEdu() { setForm(f => ({ ...f, education: [...f.education, EMPTY_EDU()] })) }
-  function removeEdu(idx) { setForm(f => ({ ...f, education: f.education.filter((_, i) => i !== idx) })) }
+  function addEdu()         { setForm(f => ({ ...f, education: [...f.education, EMPTY_EDU()] })) }
+  function removeEdu(idx)   { setForm(f => ({ ...f, education: f.education.filter((_, i) => i !== idx) })) }
 
   async function handleGenerate(e) {
     e.preventDefault()
@@ -52,26 +56,49 @@ export default function ResumeBuilderPage() {
     setError('')
     setGenerating(true)
     setResume('')
+    setSaved(false)
 
     const expText = form.experience
       .filter(e => e.title || e.company)
-      .map(e => `${e.title} at ${e.company}${e.duration ? ` (${e.duration})` : ''}\n${e.description}`)
-      .join('\n\n')
+      .map(e => `${e.title} at ${e.company}${e.duration ? ` (${e.duration})` : ''}${e.description ? `: ${e.description}` : ''}`)
+      .join('\n')
 
     const eduText = form.education
       .filter(e => e.school || e.degree)
       .map(e => `${e.degree}${e.school ? ` — ${e.school}` : ''}${e.year ? ` (${e.year})` : ''}`)
       .join('\n')
 
-    const prompt = `Create a professional, ATS-friendly resume for the following candidate. Format it as clean plain text using ALL CAPS for section headers. Use bullet points (•) for experience details. Keep it concise and impactful.
+    const prompt = `You are a professional resume writer. Create a beautifully formatted resume as HTML with inline styles only.
 
-CANDIDATE DETAILS:
+CRITICAL: Return ONLY the raw HTML — no explanation, no markdown, no code fences, no backticks. Start directly with <div.
+
+Use this exact structure and styling approach:
+
+- Outer wrapper: font-family Arial/Helvetica/sans-serif, max-width 760px, margin 0 auto, padding 48px, color #1a1a1a, line-height 1.6, font-size 14px, background white
+- Header block: centered text, padding-bottom 24px, margin-bottom 28px, border-bottom 3px solid #16a34a
+  - Name: font-size 32px, font-weight 800, margin 0 0 8px 0, color #0f172a, letter-spacing -0.5px
+  - Contact line: font-size 13px, color #475569, margin 0
+- Each section: margin-bottom 28px
+- Section title (h2): font-size 11px, font-weight 700, text-transform uppercase, letter-spacing 1.5px, color #16a34a, border-bottom 1.5px solid #dcfce7, padding-bottom 7px, margin 0 0 14px 0
+- Work experience entries: margin-bottom 18px
+  - Top row: display flex, justify-content space-between, align-items baseline, margin-bottom 3px
+    - Job title: font-size 15px, font-weight 700, color #0f172a
+    - Duration: font-size 12px, color #64748b
+  - Company name: margin 0 0 8px 0, font-size 13px, color #475569, font-style italic
+  - Bullet list: margin 0, padding-left 18px, color #334155
+    - Each li: margin-bottom 5px, line-height 1.5
+- Education entries: display flex, justify-content space-between, align-items baseline
+  - Degree bold color #0f172a
+  - School/year in gray
+- Skills section: color #334155, line-height 1.8
+
+CANDIDATE INFORMATION:
 Name: ${form.fullName}
 ${form.email ? `Email: ${form.email}` : ''}
 ${form.phone ? `Phone: ${form.phone}` : ''}
 ${form.city ? `Location: ${form.city}, BC` : ''}
 Target Role: ${form.targetTitle}
-${form.summary ? `\nCandidate's own summary: ${form.summary}` : ''}
+${form.summary ? `Candidate notes: ${form.summary}` : ''}
 
 WORK EXPERIENCE:
 ${expText || 'No experience provided'}
@@ -82,13 +109,7 @@ ${eduText || 'No education provided'}
 SKILLS:
 ${form.skills || 'Not provided'}
 
-Instructions:
-- Start with the candidate's name on line 1, then contact info on line 2
-- Write a strong 2-3 sentence professional summary tailored to the target role
-- For each work experience entry, write 3-4 bullet points highlighting achievements and responsibilities
-- Keep total length to one page worth of content
-- Use plain text only — no markdown symbols, no asterisks, no pound signs
-- Section headers: PROFESSIONAL SUMMARY, WORK EXPERIENCE, EDUCATION, SKILLS`
+Write a strong 2–3 sentence professional summary tailored to the target role. For each work experience entry write 3–4 bullet points highlighting achievements and impact. Keep total content to one page.`
 
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -101,7 +122,7 @@ Instructions:
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
-          max_tokens: 2048,
+          max_tokens: 3000,
           messages: [{ role: 'user', content: prompt }],
         }),
       })
@@ -112,7 +133,13 @@ Instructions:
       }
 
       const data = await response.json()
-      setResume(data.content[0]?.text ?? '')
+      const html = data.content[0]?.text ?? ''
+      setResume(html)
+
+      if (user) {
+        await supabase.from('job_seekers').update({ ai_resume: html }).eq('user_id', user.id)
+        setSaved(true)
+      }
     } catch (err) {
       setError(err.message ?? 'Failed to generate resume. Please try again.')
     } finally {
@@ -125,16 +152,18 @@ Instructions:
       <style>{`
         @media print {
           body > * { display: none !important; }
-          #resume-print-root { display: block !important; position: fixed; inset: 0; padding: 48px; background: white; }
-          #resume-print-root pre { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: black; white-space: pre-wrap; }
+          #resume-print-root {
+            display: block !important;
+            position: fixed; inset: 0;
+            background: white;
+            overflow: auto;
+          }
         }
         #resume-print-root { display: none; }
       `}</style>
 
       {resume && (
-        <div id="resume-print-root">
-          <pre>{resume}</pre>
-        </div>
+        <div id="resume-print-root" dangerouslySetInnerHTML={{ __html: resume }} />
       )}
 
       {/* Header */}
@@ -161,7 +190,6 @@ Instructions:
               </div>
             )}
 
-            {/* Personal info */}
             <FormSection title="Personal Information">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -194,7 +222,6 @@ Instructions:
               </div>
             </FormSection>
 
-            {/* Work experience */}
             <FormSection title="Work Experience">
               <div className="space-y-4">
                 {form.experience.map((exp, idx) => (
@@ -236,7 +263,6 @@ Instructions:
               </div>
             </FormSection>
 
-            {/* Education */}
             <FormSection title="Education">
               <div className="space-y-4">
                 {form.education.map((edu, idx) => (
@@ -273,7 +299,6 @@ Instructions:
               </div>
             </FormSection>
 
-            {/* Skills */}
             <FormSection title="Skills">
               <label className={LABEL}>
                 Skills <span className="text-slate-400 font-normal text-xs">separate with commas</span>
@@ -293,10 +318,14 @@ Instructions:
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-900">Your Resume</h2>
-                <p className="text-sm text-slate-400 mt-0.5">Review your resume below and download as PDF.</p>
+                {saved && (
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 mt-0.5">
+                    <CheckCircle2 size={13} /> Saved to your dashboard
+                  </p>
+                )}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { setResume(''); setError('') }}
+                <button onClick={() => { setResume(''); setError(''); setSaved(false) }}
                   className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl transition-colors">
                   <ArrowLeft size={15} /> Edit
                 </button>
@@ -307,8 +336,8 @@ Instructions:
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-12">
-              <pre className="font-sans text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{resume}</pre>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div dangerouslySetInnerHTML={{ __html: resume }} />
             </div>
 
             <p className="text-xs text-slate-400 text-center">
