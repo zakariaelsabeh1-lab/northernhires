@@ -47,10 +47,10 @@ const CANADA_RESOURCES = [
     host: 'jobbank.gc.ca',
   },
   {
-    label: 'Career Navigator',
+    label: 'Career Planning Tools',
     description: 'Plan your career path with guided tools, labour market information, and training resources.',
     url: 'https://www.jobbank.gc.ca/career-planning/index',
-    host: 'canada.ca',
+    host: 'jobbank.gc.ca',
   },
 ]
 

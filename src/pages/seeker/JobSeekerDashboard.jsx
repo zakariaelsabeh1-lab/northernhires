@@ -141,7 +141,7 @@ function RecommendedSection({ user, onSetPrefs }) {
     async function load() {
       const { data: seeker } = await supabase
         .from('job_seekers')
-        .select('preferred_categories, preferred_job_types, preferred_regions')
+        .select('preferred_categories, preferred_job_type, preferred_region')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -149,10 +149,10 @@ function RecommendedSection({ user, onSetPrefs }) {
       setPrefs(seeker)
 
       const cats    = seeker.preferred_categories ?? []
-      const types   = seeker.preferred_job_types  ?? []
-      const regions = seeker.preferred_regions    ?? []
+      const jobType = seeker.preferred_job_type   ?? ''
+      const region  = seeker.preferred_region     ?? ''
 
-      if (cats.length === 0 && types.length === 0 && regions.length === 0) {
+      if (cats.length === 0 && !jobType && !region) {
         setLoading(false)
         return
       }
@@ -166,9 +166,9 @@ function RecommendedSection({ user, onSetPrefs }) {
         .order('created_at', { ascending: false })
         .limit(12)
 
-      if (cats.length > 0)    q = q.in('category', cats)
-      if (types.length > 0)   q = q.in('job_type', types)
-      if (regions.length > 0) q = q.in('region', regions)
+      if (cats.length > 0) q = q.in('category', cats)
+      if (jobType)          q = q.eq('job_type', jobType)
+      if (region)           q = q.eq('region', region)
 
       const { data, error: err } = await q
       if (err) setError(err.message)
@@ -183,8 +183,8 @@ function RecommendedSection({ user, onSetPrefs }) {
 
   const noPrefs = !prefs || (
     (prefs.preferred_categories?.length ?? 0) === 0 &&
-    (prefs.preferred_job_types?.length  ?? 0) === 0 &&
-    (prefs.preferred_regions?.length    ?? 0) === 0
+    !prefs.preferred_job_type &&
+    !prefs.preferred_region
   )
 
   if (noPrefs) return (
@@ -403,14 +403,16 @@ function ProfileSection({ profile, user }) {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    full_name:             profile?.full_name             ?? '',
-    phone:                 profile?.phone                 ?? '',
-    city:                  profile?.city                  ?? '',
-    bio:                   profile?.bio                   ?? '',
-    preferred_categories:  profile?.preferred_categories  ?? [],
-    preferred_job_types:   profile?.preferred_job_types   ?? [],
-    preferred_regions:     profile?.preferred_regions     ?? [],
+    full_name:            profile?.full_name            ?? '',
+    phone:                profile?.phone                ?? '',
+    city:                 profile?.city                 ?? '',
+    bio:                  profile?.bio                  ?? '',
+    preferred_categories: profile?.preferred_categories ?? [],
+    preferred_job_type:   profile?.preferred_job_type   ?? '',
+    preferred_region:     profile?.preferred_region     ?? '',
+    skills:               profile?.skills               ?? [],
   })
+  const [skillInput, setSkillInput] = useState('')
 
   useEffect(() => {
     if (profile) setForm({
@@ -419,8 +421,9 @@ function ProfileSection({ profile, user }) {
       city:                 profile.city                 ?? '',
       bio:                  profile.bio                  ?? '',
       preferred_categories: profile.preferred_categories ?? [],
-      preferred_job_types:  profile.preferred_job_types  ?? [],
-      preferred_regions:    profile.preferred_regions    ?? [],
+      preferred_job_type:   profile.preferred_job_type   ?? '',
+      preferred_region:     profile.preferred_region     ?? '',
+      skills:               profile.skills               ?? [],
     })
   }, [profile])
 
@@ -445,8 +448,9 @@ function ProfileSection({ profile, user }) {
         city:                 form.city.trim() || null,
         bio:                  form.bio.trim() || null,
         preferred_categories: form.preferred_categories,
-        preferred_job_types:  form.preferred_job_types,
-        preferred_regions:    form.preferred_regions,
+        preferred_job_type:   form.preferred_job_type || null,
+        preferred_region:     form.preferred_region || null,
+        skills:               form.skills,
       })
       .eq('user_id', user.id)
     if (dbErr) { setError(dbErr.message); setSaving(false); return }
@@ -462,13 +466,14 @@ function ProfileSection({ profile, user }) {
       city:                 profile?.city                 ?? '',
       bio:                  profile?.bio                  ?? '',
       preferred_categories: profile?.preferred_categories ?? [],
-      preferred_job_types:  profile?.preferred_job_types  ?? [],
-      preferred_regions:    profile?.preferred_regions    ?? [],
+      preferred_job_type:   profile?.preferred_job_type   ?? '',
+      preferred_region:     profile?.preferred_region     ?? '',
+      skills:               profile?.skills               ?? [],
     })
   }
 
   const hasPrefs =
-    (form.preferred_categories.length + form.preferred_job_types.length + form.preferred_regions.length) > 0
+    form.preferred_categories.length > 0 || !!form.preferred_job_type || !!form.preferred_region || form.skills.length > 0
 
   return (
     <div>
@@ -544,37 +549,46 @@ function ProfileSection({ profile, user }) {
                   </div>
                 </Field>
 
-                <Field label="Preferred job types">
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {JOB_TYPES.map(({ value, label }) => {
-                      const on = form.preferred_job_types.includes(value)
-                      return (
-                        <button key={value} type="button" onClick={() => toggleArr('preferred_job_types', value)}
-                          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                            on ? 'bg-green-700 text-white border-green-700' : 'bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-700'
-                          }`}>
-                          {label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <Field label="Preferred job type">
+                  <select value={form.preferred_job_type} onChange={(e) => set('preferred_job_type', e.target.value)} className={INPUT}>
+                    <option value="">Any job type</option>
+                    {JOB_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                  </select>
                 </Field>
 
-                <Field label="Preferred regions">
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {REGIONS.map((r) => {
-                      const on = form.preferred_regions.includes(r)
-                      return (
-                        <button key={r} type="button" onClick={() => toggleArr('preferred_regions', r)}
-                          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                            on ? 'bg-green-700 text-white border-green-700' : 'bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-700'
-                          }`}>
-                          {r}
+                <Field label="Preferred region">
+                  <select value={form.preferred_region} onChange={(e) => set('preferred_region', e.target.value)} className={INPUT}>
+                    <option value="">All of Northern BC</option>
+                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </Field>
+
+                <Field label="Skills">
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.skills.map((s) => (
+                      <span key={s} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-full">
+                        {s}
+                        <button type="button" onClick={() => set('skills', form.skills.filter((x) => x !== s))} className="text-green-500 hover:text-green-800">
+                          <X size={10} />
                         </button>
-                      )
-                    })}
+                      </span>
+                    ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-1.5">Leave blank to match jobs across all of Northern BC.</p>
+                  <input
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ',') && skillInput.trim()) {
+                        e.preventDefault()
+                        const s = skillInput.trim().replace(/,$/, '')
+                        if (s && !form.skills.includes(s)) set('skills', [...form.skills, s])
+                        setSkillInput('')
+                      }
+                    }}
+                    className={INPUT}
+                    placeholder="Type a skill and press Enter"
+                  />
+                  <p className="text-xs text-slate-400 mt-1.5">Press Enter or comma to add each skill.</p>
                 </Field>
               </div>
 
@@ -614,22 +628,24 @@ function ProfileSection({ profile, user }) {
                         </div>
                       </div>
                     )}
-                    {form.preferred_job_types.length > 0 && (
+                    {form.preferred_job_type && (
                       <div>
-                        <p className="text-xs text-slate-400 mb-1.5">Job types</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {form.preferred_job_types.map((t) => (
-                            <span key={t} className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{TYPE_LABELS[t] ?? t}</span>
-                          ))}
-                        </div>
+                        <p className="text-xs text-slate-400 mb-1.5">Job type</p>
+                        <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{TYPE_LABELS[form.preferred_job_type] ?? form.preferred_job_type}</span>
                       </div>
                     )}
-                    {form.preferred_regions.length > 0 && (
+                    {form.preferred_region && (
                       <div>
-                        <p className="text-xs text-slate-400 mb-1.5">Regions</p>
+                        <p className="text-xs text-slate-400 mb-1.5">Region</p>
+                        <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{form.preferred_region}</span>
+                      </div>
+                    )}
+                    {form.skills?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1.5">Skills</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {form.preferred_regions.map((r) => (
-                            <span key={r} className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{r}</span>
+                          {form.skills.map((s) => (
+                            <span key={s} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">{s}</span>
                           ))}
                         </div>
                       </div>
