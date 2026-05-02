@@ -274,7 +274,7 @@ function AlertsTab({ user, profile }) {
     }
     const { error: dbErr } = existing
       ? await supabase.from('job_alerts').update(payload).eq('id', existing.id)
-      : await supabase.from('job_alerts').upsert(payload, { onConflict: 'email' })
+      : await supabase.from('job_alerts').upsert(payload, { onConflict: 'user_id' })
     if (dbErr) { setError(dbErr.message); setSaving(false); return }
     setSaved(true)
     setSaving(false)

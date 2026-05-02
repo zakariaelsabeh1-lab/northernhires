@@ -816,7 +816,7 @@ function AlertsSection({ user, profile }) {
     const payload = { email: email.trim().toLowerCase(), categories: selectedCats, regions: selectedRegions, job_seeker_id: profile?.id ?? null, active: true }
     const { error: dbErr } = existing
       ? await supabase.from('job_alerts').update(payload).eq('id', existing.id)
-      : await supabase.from('job_alerts').upsert(payload, { onConflict: 'email' })
+      : await supabase.from('job_alerts').upsert(payload, { onConflict: 'user_id' })
     if (dbErr) { setError(dbErr.message); setSaving(false); return }
     if (!existing) setExisting(payload)
     setSaved(true); setSaving(false)
