@@ -4,7 +4,7 @@ import {
   Bookmark, Bell, User, MapPin, Briefcase, Building2,
   Loader2, AlertCircle, Trash2, ArrowRight, Pencil, Check,
   X, Phone, FileText, CheckCircle2, Upload, ExternalLink, Trash,
-  Star, DollarSign, ClipboardList, Sparkles,
+  Star, DollarSign, ClipboardList, Sparkles, Download,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -685,6 +685,7 @@ function ProfileSection({ profile, user }) {
 function AiResumeCard({ user }) {
   const [aiResume, setAiResume] = useState(null)
   const [loading, setLoading]   = useState(true)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -696,6 +697,29 @@ function AiResumeCard({ user }) {
       .then(({ data }) => { setAiResume(data?.ai_resume ?? null); setLoading(false) })
   }, [user])
 
+  function handlePrint() {
+    const style = document.createElement('style')
+    style.id = 'ai-resume-print-style'
+    style.textContent = `
+      @media print {
+        * { visibility: hidden !important; }
+        #ai-resume-preview, #ai-resume-preview * { visibility: visible !important; }
+        #ai-resume-preview { position: fixed !important; top: 0; left: 0; width: 100%; background: white; }
+      }
+    `
+    document.head.appendChild(style)
+    window.print()
+    setTimeout(() => { document.getElementById('ai-resume-print-style')?.remove() }, 500)
+  }
+
+  async function handleDelete() {
+    if (!window.confirm('Delete your saved AI resume? This cannot be undone.')) return
+    setDeleting(true)
+    await supabase.from('job_seekers').update({ ai_resume: null }).eq('user_id', user.id)
+    setAiResume(null)
+    setDeleting(false)
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-5">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -706,10 +730,24 @@ function AiResumeCard({ user }) {
             <p className="text-xs text-slate-400">Built with the AI Resume Builder</p>
           </div>
         </div>
-        <Link to="/resume-builder"
-          className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
-          {aiResume ? 'Rebuild' : 'Build Resume'}
-        </Link>
+        <div className="flex items-center gap-2">
+          {aiResume && (
+            <>
+              <button onClick={handlePrint}
+                className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
+                <Download size={12} /> Download PDF
+              </button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete
+              </button>
+            </>
+          )}
+          <Link to="/resume-builder"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">
+            {aiResume ? 'Rebuild' : 'Build Resume'}
+          </Link>
+        </div>
       </div>
       {loading ? (
         <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
@@ -717,7 +755,7 @@ function AiResumeCard({ user }) {
           <span className="text-sm">Loading…</span>
         </div>
       ) : aiResume ? (
-        <div className="overflow-auto max-h-[600px]" dangerouslySetInnerHTML={{ __html: aiResume }} />
+        <div id="ai-resume-preview" className="overflow-auto max-h-[600px]" dangerouslySetInnerHTML={{ __html: aiResume }} />
       ) : (
         <div className="flex flex-col items-center justify-center py-10 text-center px-6">
           <Sparkles size={22} className="text-slate-300 mb-3" />

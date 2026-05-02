@@ -31,6 +31,7 @@ export default function ResumeBuilderPage() {
     education:   [EMPTY_EDU()],
     skills:      '',
   })
+  const [skillsFirst, setSkillsFirst] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [resume, setResume]         = useState('')
   const [error, setError]           = useState('')
@@ -97,15 +98,21 @@ Create a resume using EXACTLY this HTML structure (fill in the candidate's info)
   </div>
   <hr style="border: none; border-top: 2px solid #16a34a; margin: 18px 0 28px 0;" />
 
-  <!-- SUMMARY -->
+  <!-- PROFESSIONAL SUMMARY -->
   <div style="margin-bottom: 26px;">
-    <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">SUMMARY</h2>
+    <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">PROFESSIONAL SUMMARY</h2>
     <p style="margin: 0; color: #334155;">[2-3 sentence professional summary]</p>
   </div>
 
-  <!-- EXPERIENCE -->
+${skillsFirst ? `  <!-- SKILLS -->
   <div style="margin-bottom: 26px;">
-    <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 14px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">EXPERIENCE</h2>
+    <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">SKILLS</h2>
+    <p style="margin: 0; color: #334155; line-height: 1.8;">[comma-separated skills]</p>
+  </div>
+
+` : ''}  <!-- PROFESSIONAL EXPERIENCE -->
+  <div style="margin-bottom: 26px;">
+    <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 14px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">PROFESSIONAL EXPERIENCE</h2>
     [For each job:]
     <div style="margin-bottom: 18px;">
       <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
@@ -130,13 +137,13 @@ Create a resume using EXACTLY this HTML structure (fill in the candidate's info)
     <p style="margin: 0; font-size: 13px; color: #475569; font-style: italic;">[SCHOOL]</p>
   </div>
 
-  <!-- SKILLS -->
+${skillsFirst ? '' : `  <!-- SKILLS -->
   <div>
     <h2 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #0f172a; margin: 0 0 10px 0; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;">SKILLS</h2>
     <p style="margin: 0; color: #334155; line-height: 1.8;">[comma-separated skills]</p>
   </div>
 
-</div>
+`}</div>
 
 CANDIDATE DATA:
 Name: ${form.fullName}
@@ -352,6 +359,18 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
               </label>
               <textarea value={form.skills} onChange={e => set('skills', e.target.value)} rows={3} className={INPUT}
                 placeholder="Forklift operation, WHMIS certification, First aid, Equipment maintenance, Class 1 licence…" />
+              <label className="flex items-center gap-2.5 mt-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={skillsFirst}
+                  onChange={e => setSkillsFirst(e.target.checked)}
+                  className="accent-green-700 w-4 h-4"
+                />
+                <span className="text-sm text-slate-600">
+                  Show Skills <strong>before</strong> Experience
+                  <span className="text-slate-400 font-normal ml-1">(default: after)</span>
+                </span>
+              </label>
             </FormSection>
 
             <button type="submit" disabled={generating}
