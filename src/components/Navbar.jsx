@@ -53,6 +53,9 @@ export default function Navbar() {
             <Link to="/jobs" className="text-sm font-medium text-slate-600 hover:text-green-700 transition-colors">
               Browse Jobs
             </Link>
+            <Link to="/workshops" className="text-sm font-medium text-slate-600 hover:text-green-700 transition-colors">
+              Workshops
+            </Link>
             <Link to="/employers" className="text-sm font-medium text-slate-600 hover:text-green-700 transition-colors">
               For Employers
             </Link>
@@ -154,6 +157,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 py-4 space-y-1">
           <MobileLink to="/jobs" onClick={() => setMobileOpen(false)}>Browse Jobs</MobileLink>
+          <MobileLink to="/workshops" onClick={() => setMobileOpen(false)}>Workshops</MobileLink>
           <MobileLink to="/employers" onClick={() => setMobileOpen(false)}>For Employers</MobileLink>
           <MobileLink to="/about" onClick={() => setMobileOpen(false)}>About</MobileLink>
           <hr className="border-slate-100 my-2" />

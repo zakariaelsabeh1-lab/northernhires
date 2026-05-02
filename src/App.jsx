@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage'
 import JobsPage from './pages/JobsPage'
 import JobDetailPage from './pages/JobDetailPage'
 import ApplyPage from './pages/ApplyPage'
+import WorkshopsPage from './pages/WorkshopsPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import EmployerLoginPage from './pages/employer/EmployerLoginPage'
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id/apply" element={<ApplyPage />} />
+            <Route path="/workshops" element={<WorkshopsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
