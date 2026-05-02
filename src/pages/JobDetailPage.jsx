@@ -167,7 +167,7 @@ export default function JobDetailPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setShowApplyForm(true)}
+                    onClick={() => { console.log('Apply Now clicked'); setShowApplyForm(true) }}
                     className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
                   >
                     Apply Now
@@ -259,12 +259,11 @@ export default function JobDetailPage() {
           </aside>
         </div>
       </div>
-    </div>
 
-    {showApplyForm && (
-      <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
-    )}
-  </div>
+      {showApplyForm && (
+        <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
+      )}
+    </div>
   )
 }
 
