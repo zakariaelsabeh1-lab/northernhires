@@ -677,7 +677,6 @@ function ProfileSection({ profile, user }) {
         </div>
       </div>
 
-      <AiResumeCard user={user} />
     </div>
   )
 }
@@ -799,21 +798,6 @@ function ResumeSection({ profile, user }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [dragOver, setDragOver] = useState(false)
-  const [aiResume, setAiResume] = useState(null)
-  const [aiResumeLoading, setAiResumeLoading] = useState(true)
-
-  useEffect(() => {
-    if (!user) { setAiResumeLoading(false); return }
-    supabase
-      .from('job_seekers')
-      .select('ai_resume')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setAiResume(data?.ai_resume ?? null)
-        setAiResumeLoading(false)
-      })
-  }, [user])
 
   const storagePath = `${user?.id}/resume.pdf`
 
@@ -864,7 +848,7 @@ function ResumeSection({ profile, user }) {
               <p className="text-sm font-semibold text-slate-800 truncate">resume.pdf</p>
               <p className="text-xs text-slate-400">PDF document</p>
             </div>
-            <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
+            <a href={supabase.storage.from('resumes').getPublicUrl(storagePath).data.publicUrl} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
               <ExternalLink size={12} /> View
             </a>
@@ -903,40 +887,7 @@ function ResumeSection({ profile, user }) {
         <p className="text-xs text-slate-400">Your resume is stored securely and only shared when you choose to apply for a job.</p>
       </div>
 
-      {/* AI-generated resume */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <Sparkles size={16} className="text-green-600" />
-            <div>
-              <p className="font-semibold text-slate-900 text-sm">AI-Generated Resume</p>
-              <p className="text-xs text-slate-400">Created with the AI Resume Builder</p>
-            </div>
-          </div>
-          <Link
-            to="/resume-builder"
-            className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            {aiResume ? 'Rebuild' : 'Build Resume'}
-          </Link>
-        </div>
-        {aiResumeLoading ? (
-          <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
-            <Loader2 size={16} className="animate-spin text-green-600" />
-            <span className="text-sm">Loading…</span>
-          </div>
-        ) : aiResume ? (
-          <div className="overflow-auto" dangerouslySetInnerHTML={{ __html: aiResume }} />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center px-6">
-            <Sparkles size={22} className="text-slate-300 mb-3" />
-            <p className="text-sm font-medium text-slate-600 mb-1">No AI resume yet</p>
-            <p className="text-xs text-slate-400 max-w-xs">
-              Use the AI Resume Builder to generate a professionally formatted resume in seconds.
-            </p>
-          </div>
-        )}
-      </div>
+      <AiResumeCard user={user} />
     </div>
   )
 }
