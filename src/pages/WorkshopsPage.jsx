@@ -139,6 +139,10 @@ export default function WorkshopsPage() {
             ))}
           </div>
         </div>
+
+        <p className="text-xs text-slate-400 text-center mt-12 max-w-2xl mx-auto leading-relaxed">
+          Some resources on this page are provided by third-party organizations. NorthernHires is not affiliated with these organizations and is not responsible for their content.
+        </p>
       </div>
     </div>
   )
