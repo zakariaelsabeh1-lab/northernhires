@@ -4,7 +4,7 @@ import {
   Bookmark, Bell, User, MapPin, Briefcase, Building2,
   Loader2, AlertCircle, Trash2, ArrowRight, Pencil, Check,
   X, Phone, FileText, CheckCircle2, Upload, ExternalLink, Trash,
-  Star, DollarSign,
+  Star, DollarSign, ClipboardList,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -32,11 +32,12 @@ function timeAgo(dateStr) {
 }
 
 const NAV = [
-  { key: 'recommended', label: 'Recommended', icon: Star },
-  { key: 'saved',       label: 'Saved Jobs',  icon: Bookmark },
-  { key: 'profile',     label: 'My Profile',  icon: User },
-  { key: 'resume',      label: 'Resume',      icon: FileText },
-  { key: 'alerts',      label: 'Job Alerts',  icon: Bell },
+  { key: 'recommended',  label: 'Recommended',    icon: Star },
+  { key: 'saved',        label: 'Saved Jobs',      icon: Bookmark },
+  { key: 'applications', label: 'My Applications', icon: ClipboardList },
+  { key: 'profile',      label: 'My Profile',      icon: User },
+  { key: 'resume',       label: 'Resume',          icon: FileText },
+  { key: 'alerts',       label: 'Job Alerts',      icon: Bell },
 ]
 
 export default function JobSeekerDashboard() {
@@ -108,11 +109,12 @@ export default function JobSeekerDashboard() {
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
-            {section === 'recommended' && <RecommendedSection user={user} onSetPrefs={() => goTo('profile')} />}
-            {section === 'saved'       && <SavedSection />}
-            {section === 'profile'     && <ProfileSection profile={profile} user={user} />}
-            {section === 'resume'      && <ResumeSection profile={profile} user={user} />}
-            {section === 'alerts'      && <AlertsSection user={user} profile={profile} />}
+            {section === 'recommended'  && <RecommendedSection user={user} onSetPrefs={() => goTo('profile')} />}
+            {section === 'saved'        && <SavedSection />}
+            {section === 'applications' && <ApplicationsSection user={user} profile={profile} />}
+            {section === 'profile'      && <ProfileSection profile={profile} user={user} />}
+            {section === 'resume'       && <ResumeSection profile={profile} user={user} />}
+            {section === 'alerts'       && <AlertsSection user={user} profile={profile} />}
           </div>
         </div>
       </div>
@@ -779,7 +781,94 @@ function ResumeSection({ profile, user }) {
             </div>
           )}
         </div>
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+          For best experience viewing resumes please use a desktop browser.
+        </p>
         <p className="text-xs text-slate-400">Your resume is stored securely and only shared when you choose to apply for a job.</p>
+      </div>
+    </div>
+  )
+}
+
+/* ── My Applications ─────────────────────────────────────────── */
+const APP_STATUS_STYLES = {
+  pending:     'bg-amber-100 text-amber-700 border-amber-200',
+  reviewed:    'bg-blue-100 text-blue-700 border-blue-100',
+  shortlisted: 'bg-green-100 text-green-700 border-green-200',
+  rejected:    'bg-red-100 text-red-600 border-red-200',
+}
+const APP_STATUS_LABELS = {
+  pending: 'Pending', reviewed: 'Reviewed', shortlisted: 'Shortlisted', rejected: 'Rejected',
+}
+
+function ApplicationsSection({ user, profile }) {
+  const [apps, setApps] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!user || !profile) { setLoading(false); return }
+    supabase
+      .from('job_applications')
+      .select('id, created_at, status, jobs ( id, title, employers ( company_name ) )')
+      .eq('job_seeker_id', profile.id)
+      .order('created_at', { ascending: false })
+      .then(({ data, error: err }) => {
+        if (err) setError(err.message)
+        else setApps(data ?? [])
+        setLoading(false)
+      })
+  }, [user, profile])
+
+  if (loading) return <Spinner />
+  if (error) return <ErrorBanner msg={error} />
+
+  if (apps.length === 0) return (
+    <div>
+      <SectionHeader icon={ClipboardList} title="My Applications" sub="Jobs you've applied to" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <ClipboardList size={24} className="text-slate-300" />
+        </div>
+        <h3 className="font-bold text-slate-800 text-lg mb-2">No applications yet</h3>
+        <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">
+          Once you apply for jobs, they'll appear here so you can track your progress.
+        </p>
+        <Link to="/jobs"
+          className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+          Browse Jobs <ArrowRight size={15} />
+        </Link>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      <SectionHeader icon={ClipboardList} title="My Applications" sub={`${apps.length} application${apps.length !== 1 ? 's' : ''}`} />
+      <div className="space-y-3">
+        {apps.map((app) => (
+          <div key={app.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <Link to={`/jobs/${app.jobs?.id}`}
+                  className="font-semibold text-slate-900 hover:text-green-700 text-sm transition-colors block truncate">
+                  {app.jobs?.title ?? 'Job listing'}
+                </Link>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 mt-1">
+                  {app.jobs?.employers?.company_name && (
+                    <span className="flex items-center gap-1">
+                      <Building2 size={11} />{app.jobs.employers.company_name}
+                    </span>
+                  )}
+                  <span className="text-slate-400">Applied {timeAgo(app.created_at)}</span>
+                </div>
+              </div>
+              <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${APP_STATUS_STYLES[app.status] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                {APP_STATUS_LABELS[app.status] ?? app.status}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

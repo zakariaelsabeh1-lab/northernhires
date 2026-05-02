@@ -16,6 +16,7 @@ import EmployerRegisterPage from './pages/employer/EmployerRegisterPage'
 import EmployerDashboard from './pages/employer/EmployerDashboard'
 import PostJobPage from './pages/employer/PostJobPage'
 import EmployersLandingPage from './pages/employer/EmployersLandingPage'
+import AboutPage from './pages/AboutPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -68,7 +69,7 @@ export default function App() {
             <Route path="/alerts" element={<Navigate to="/dashboard/jobseeker?tab=alerts" replace />} />
 
             {/* Placeholders */}
-            <Route path="/about" element={<PlaceholderPage title="About NorthernHires" />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/profile" element={<PlaceholderPage title="My Profile" />} />
             <Route path="/pricing" element={<Navigate to="/employers" replace />} />
             <Route path="/contact" element={<PlaceholderPage title="Contact" />} />
