@@ -41,8 +41,8 @@ const CANADA_RESOURCES = [
     host: 'canada.ca',
   },
   {
-    label: 'Job Bank Skills Matching',
-    description: 'Match your skills to in-demand occupations and explore career pathways across Canada.',
+    label: 'Job Bank - Find Jobs',
+    description: 'Search thousands of real Canadian job postings on the Government of Canada official job board.',
     url: 'https://www.jobbank.gc.ca/jobsearch/jobsearch',
     host: 'jobbank.gc.ca',
   },
