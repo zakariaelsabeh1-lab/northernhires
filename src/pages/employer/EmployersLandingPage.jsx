@@ -1,9 +1,12 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   MapPin, CheckCircle, Building2, Users, Eye, Zap,
-  ArrowRight, Star, Clock, DollarSign,
+  ArrowRight, Star, Clock, DollarSign, Tag, X,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+
+const PROMO_CODE = 'NORTHERN2026'
 
 const STEPS = [
   { n: '1', title: 'Create your employer account', body: 'Sign up with your company email in under two minutes. No credit card required to register.' },
@@ -33,6 +36,20 @@ const TESTIMONIALS = [
 
 export default function EmployersLandingPage() {
   const { user, employerProfile } = useAuth()
+  const navigate = useNavigate()
+  const [promoInput, setPromoInput] = useState('')
+  const [promoApplied, setPromoApplied] = useState(false)
+  const [promoError, setPromoError] = useState(false)
+
+  function applyPromo() {
+    if (promoInput.trim().toUpperCase() === PROMO_CODE) {
+      setPromoApplied(true)
+      setPromoError(false)
+    } else {
+      setPromoError(true)
+      setPromoApplied(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -152,14 +169,54 @@ export default function EmployersLandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">Simple, honest pricing</h2>
             <p className="text-slate-500">No hidden fees. No subscription traps.</p>
           </div>
+          {/* Promo code */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 w-full max-w-sm">
+              <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <Tag size={14} className="text-green-600" /> Have a promo code?
+              </p>
+              {promoApplied ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-green-700">
+                    <CheckCircle size={15} className="text-green-600" /> First post free! Click below to claim.
+                  </span>
+                  <button onClick={() => { setPromoApplied(false); setPromoInput('') }} className="text-green-500 hover:text-green-700 ml-2">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(false) }}
+                      onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                      placeholder="Enter code"
+                      className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors uppercase"
+                    />
+                    <button onClick={applyPromo}
+                      className="bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors">
+                      Apply
+                    </button>
+                  </div>
+                  {promoError && (
+                    <p className="text-xs text-red-500 mt-1.5">Invalid promo code. Please try again.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <PricingCard
               name="Single Listing"
-              price="$49"
+              price={promoApplied ? 'Free' : '$49'}
               period="per listing"
               features={['Active for 30 days', 'Real-time view counts', 'Employer dashboard', 'Activate / deactivate anytime']}
               cta="Post a job"
               href="https://buy.stripe.com/test_4gM4gA9QydTf8Ic0jS7EQ01"
+              freeMode={promoApplied}
+              onFreeClaim={() => navigate(employerProfile ? '/employers/post-job' : '/employers/register')}
             />
             <PricingCard
               name="3-Pack"
@@ -240,11 +297,14 @@ export default function EmployersLandingPage() {
   )
 }
 
-function PricingCard({ name, price, period, features, cta, href, highlight = false }) {
+function PricingCard({ name, price, period, features, cta, href, highlight = false, freeMode = false, onFreeClaim }) {
+  const btnClass = highlight
+    ? 'bg-white text-green-900 hover:bg-green-50'
+    : 'bg-green-700 text-white hover:bg-green-800'
   return (
     <div className={`rounded-2xl p-7 border ${highlight ? 'bg-green-900 text-white border-green-700' : 'bg-white border-slate-200'} shadow-sm`}>
       <p className={`text-sm font-semibold mb-1 ${highlight ? 'text-green-300' : 'text-slate-500'}`}>{name}</p>
-      <p className={`text-4xl font-extrabold mb-0.5 ${highlight ? 'text-white' : 'text-slate-900'}`}>{price}</p>
+      <p className={`text-4xl font-extrabold mb-0.5 ${highlight ? 'text-white' : freeMode ? 'text-green-700' : 'text-slate-900'}`}>{price}</p>
       <p className={`text-xs mb-6 ${highlight ? 'text-green-300' : 'text-slate-400'}`}>{period}</p>
       <ul className="space-y-2 mb-7">
         {features.map((f) => (
@@ -254,18 +314,23 @@ function PricingCard({ name, price, period, features, cta, href, highlight = fal
           </li>
         ))}
       </ul>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`block text-center font-semibold text-sm px-5 py-3 rounded-xl transition-colors ${
-          highlight
-            ? 'bg-white text-green-900 hover:bg-green-50'
-            : 'bg-green-700 text-white hover:bg-green-800'
-        }`}
-      >
-        {cta}
-      </a>
+      {freeMode ? (
+        <button
+          onClick={onFreeClaim}
+          className={`block w-full text-center font-semibold text-sm px-5 py-3 rounded-xl transition-colors ${btnClass}`}
+        >
+          Claim Free Post →
+        </button>
+      ) : (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`block text-center font-semibold text-sm px-5 py-3 rounded-xl transition-colors ${btnClass}`}
+        >
+          {cta}
+        </a>
+      )}
     </div>
   )
 }

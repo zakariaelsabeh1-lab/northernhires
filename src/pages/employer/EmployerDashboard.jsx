@@ -49,6 +49,12 @@ export default function EmployerDashboard() {
 
   const [qualifiedCounts, setQualifiedCounts] = useState({})
 
+  // Qualified candidates tab state
+  const [qualifiedTabJobId, setQualifiedTabJobId] = useState(null)
+  const [qualifiedSeekers, setQualifiedSeekers] = useState([])
+  const [qualifiedLoading, setQualifiedLoading] = useState(false)
+  const [qualifiedError, setQualifiedError] = useState(null)
+
   // Applications state
   const [applications, setApplications] = useState([])
   const [appsLoading, setAppsLoading] = useState(false)
@@ -75,6 +81,20 @@ export default function EmployerDashboard() {
       fetchQualifiedCounts(data ?? [])
     }
     setLoading(false)
+  }
+
+  async function fetchQualifiedSeekers(job) {
+    setQualifiedTabJobId(job.id)
+    setActiveTab('qualified')
+    setQualifiedLoading(true)
+    setQualifiedError(null)
+    const { data, error } = await supabase
+      .from('job_seekers')
+      .select('id, full_name, email, preferred_categories, preferred_region, city')
+      .contains('preferred_categories', [job.category])
+    if (error) { setQualifiedError(error.message); setQualifiedLoading(false); return }
+    setQualifiedSeekers((data ?? []).filter(s => !s.preferred_region || s.preferred_region === job.region))
+    setQualifiedLoading(false)
   }
 
   async function fetchQualifiedCounts(jobList) {
@@ -188,8 +208,9 @@ export default function EmployerDashboard() {
         {/* Tabs */}
         <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-6 w-fit">
           {[
-            { key: 'listings', label: 'Listings' },
+            { key: 'listings',     label: 'Listings' },
             { key: 'applications', label: `Applications${applications.length ? ` (${applications.length})` : ''}` },
+            { key: 'qualified',    label: 'Qualified Candidates' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -307,10 +328,14 @@ export default function EmployerDashboard() {
                             <span className="text-xs text-slate-400 sm:hidden">views</span>
                           </div>
                           <div className="hidden sm:flex justify-center w-24">
-                            <span className="flex items-center gap-1 text-sm font-semibold text-green-700">
+                            <button
+                              onClick={() => fetchQualifiedSeekers(job)}
+                              title="View qualified candidates"
+                              className="flex items-center gap-1 text-sm font-semibold text-green-700 hover:text-green-800 hover:underline transition-colors"
+                            >
                               <Users size={13} className="text-green-500" />
                               {qualifiedCounts[job.id] ?? '—'}
-                            </span>
+                            </button>
                           </div>
                           <div className="hidden sm:flex justify-center w-20">
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
@@ -424,6 +449,100 @@ export default function EmployerDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── Qualified Candidates Tab ── */}
+        {activeTab === 'qualified' && (
+          <div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Select a job to view qualified candidates</label>
+              <select
+                value={qualifiedTabJobId ?? ''}
+                onChange={(e) => {
+                  const job = jobs.find(j => j.id === e.target.value)
+                  if (job) fetchQualifiedSeekers(job)
+                }}
+                className="w-full sm:max-w-md border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors"
+              >
+                <option value="">— Select a job listing —</option>
+                {jobs.map(j => (
+                  <option key={j.id} value={j.id}>
+                    {j.title} · {j.region} ({qualifiedCounts[j.id] ?? 0} qualified)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {qualifiedLoading && (
+              <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
+                <Loader2 size={20} className="animate-spin text-green-600" />
+                <span className="text-sm">Loading candidates…</span>
+              </div>
+            )}
+
+            {qualifiedError && (
+              <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4 mb-4">
+                <AlertCircle size={16} className="shrink-0" /> {qualifiedError}
+              </div>
+            )}
+
+            {!qualifiedLoading && !qualifiedError && qualifiedTabJobId && qualifiedSeekers.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center py-16 text-center px-6">
+                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+                  <Users size={22} className="text-slate-400" />
+                </div>
+                <h3 className="font-bold text-slate-800 mb-2">No matching candidates</h3>
+                <p className="text-slate-400 text-sm max-w-xs">
+                  No job seekers have preferences matching this listing's category and region.
+                </p>
+              </div>
+            )}
+
+            {!qualifiedLoading && !qualifiedError && qualifiedSeekers.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                  <h3 className="font-bold text-slate-800">
+                    {qualifiedSeekers.length} Qualified Candidate{qualifiedSeekers.length !== 1 ? 's' : ''}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Job seekers whose preferred categories and region match this listing
+                  </p>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {qualifiedSeekers.map((s) => (
+                    <div key={s.id} className="px-6 py-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center shrink-0 text-green-700 font-bold text-sm">
+                            {(s.full_name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 text-sm">{s.full_name || '—'}</p>
+                            <a href={`mailto:${s.email}`}
+                              className="text-xs text-slate-500 hover:text-green-700 flex items-center gap-1 transition-colors">
+                              <Mail size={11} /> {s.email}
+                            </a>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 ml-12 sm:ml-0">
+                          {(s.preferred_categories ?? []).map(cat => (
+                            <span key={cat} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                              {cat}
+                            </span>
+                          ))}
+                          {s.preferred_region && (
+                            <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <MapPin size={10} />{s.preferred_region}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

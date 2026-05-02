@@ -4,7 +4,7 @@ import {
   Bookmark, Bell, User, MapPin, Briefcase, Building2,
   Loader2, AlertCircle, Trash2, ArrowRight, Pencil, Check,
   X, Phone, FileText, CheckCircle2, Upload, ExternalLink, Trash,
-  Star, DollarSign, ClipboardList,
+  Star, DollarSign, ClipboardList, Sparkles,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -99,6 +99,15 @@ export default function JobSeekerDashboard() {
                 </button>
               ))}
             </nav>
+
+            <Link
+              to="/resume-builder"
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors border-t border-slate-100"
+            >
+              <Sparkles size={16} className="text-slate-400" />
+              AI Resume Builder
+              <span className="ml-auto text-xs bg-green-100 text-green-700 font-semibold px-1.5 py-0.5 rounded-full">New</span>
+            </Link>
 
             <div className="mt-4 bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
               <CheckCircle2 size={18} className="text-green-600 mx-auto mb-1.5" />

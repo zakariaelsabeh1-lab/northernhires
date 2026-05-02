@@ -17,6 +17,7 @@ import EmployerDashboard from './pages/employer/EmployerDashboard'
 import PostJobPage from './pages/employer/PostJobPage'
 import EmployersLandingPage from './pages/employer/EmployersLandingPage'
 import AboutPage from './pages/AboutPage'
+import ResumeBuilderPage from './pages/ResumeBuilderPage'
 
 function PlaceholderPage({ title }) {
   return (
@@ -66,6 +67,7 @@ export default function App() {
               <ProtectedSeekerRoute><JobSeekerDashboard /></ProtectedSeekerRoute>
             } />
             <Route path="/dashboard" element={<Navigate to="/dashboard/jobseeker" replace />} />
+            <Route path="/resume-builder" element={<ResumeBuilderPage />} />
             <Route path="/alerts" element={<Navigate to="/dashboard/jobseeker?tab=alerts" replace />} />
 
             {/* Placeholders */}

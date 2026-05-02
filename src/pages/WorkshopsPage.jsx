@@ -29,7 +29,7 @@ const WORKSHOPS = [
     title: 'Financial Literacy for Job Seekers',
     description: 'Understand your pay, benefits, and finances when starting or changing jobs. Topics include reading your pay stub, understanding deductions and taxes, budgeting on a variable income, and accessing financial support programs.',
     duration: '55 min',
-    url: 'https://itools-ioutils.fcac-acfc.gc.ca/MBP-MGPB/initMBP-initMGPB.aspx',
+    url: 'https://www.canada.ca/en/financial-consumer-agency/services/financial-literacy-programs.html',
   },
 ]
 
