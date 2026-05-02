@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import SaveButton from '../components/SaveButton'
+import ApplicationForm from '../components/ApplicationForm'
+import { useAuth } from '../context/AuthContext'
 
 const TYPE_LABELS = {
   'full-time': 'Full-time',
@@ -34,10 +36,12 @@ function timeAgo(dateStr) {
 
 export default function JobDetailPage() {
   const { id } = useParams()
+  const { employerProfile } = useAuth()
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [showApplyForm, setShowApplyForm] = useState(false)
 
   useEffect(() => {
     async function fetchJob() {
@@ -46,7 +50,7 @@ export default function JobDetailPage() {
       const { data, error } = await supabase
         .from('jobs')
         .select(`
-          id, title, description, category, job_type,
+          id, employer_id, title, description, category, job_type,
           salary_min, salary_max, salary_type,
           city, region, is_active, is_featured,
           apply_url, apply_email, created_at,
@@ -157,24 +161,15 @@ export default function JobDetailPage() {
 
               {/* Apply buttons */}
               <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-slate-100">
-                {apply_url ? (
-                  <a
-                    href={apply_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
-                  >
-                    Apply Now <ExternalLink size={15} />
-                  </a>
-                ) : apply_email ? (
-                  <a
-                    href={`mailto:${apply_email}?subject=Application for ${title}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
-                  >
-                    Apply via Email
-                  </a>
+                {employerProfile ? (
+                  <div className="flex-1 flex items-center justify-center gap-2 bg-slate-100 text-slate-400 font-semibold text-sm px-6 py-3 rounded-xl cursor-not-allowed select-none">
+                    Employer account — cannot apply
+                  </div>
                 ) : (
-                  <button className="flex-1 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors">
+                  <button
+                    onClick={() => setShowApplyForm(true)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
+                  >
                     Apply Now
                   </button>
                 )}
@@ -205,6 +200,11 @@ export default function JobDetailPage() {
               </Link>
             </div>
           </div>
+
+          {/* ── Application form modal ── */}
+          {showApplyForm && (
+            <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
+          )}
 
           {/* ── Sidebar ── */}
           <aside className="lg:w-72 shrink-0 space-y-5 lg:sticky lg:top-24 self-start">
