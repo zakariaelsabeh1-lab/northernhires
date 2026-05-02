@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Info, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { CATEGORIES, REGIONS, JOB_TYPES } from '../../hooks/useJobs'
@@ -36,6 +36,7 @@ export default function PostJobPage() {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [matchedCount, setMatchedCount] = useState(null)
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -103,6 +104,19 @@ export default function PostJobPage() {
     }
   }
 
+  useEffect(() => {
+    if (!form.category || !form.region) { setMatchedCount(null); return }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc('count_matched_seekers', {
+        p_category: form.category,
+        p_job_type: form.jobType,
+        p_region:   form.region,
+      })
+      setMatchedCount(data ?? 0)
+    }, 600)
+    return () => clearTimeout(t)
+  }, [form.category, form.jobType, form.region])
+
   const salaryPrefix = form.salaryType === 'hourly' ? '$/hr' : form.salaryType === 'annual' ? '$/yr' : ''
 
   return (
@@ -166,6 +180,17 @@ export default function PostJobPage() {
                 </select>
               </div>
             </div>
+
+            {matchedCount !== null && (
+              <div className="flex items-center gap-2.5 bg-green-50 border border-green-200 text-green-800 text-sm rounded-xl p-3.5 mt-2">
+                <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Users size={14} className="text-green-700" />
+                </div>
+                <span>
+                  <strong>{matchedCount}</strong> job seeker{matchedCount !== 1 ? 's' : ''} {matchedCount === 1 ? 'has' : 'have'} preferences matching this role.
+                </span>
+              </div>
+            )}
           </Section>
 
           {/* Section 2 — Compensation */}

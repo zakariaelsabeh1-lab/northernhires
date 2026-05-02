@@ -4,11 +4,12 @@ import {
   Bookmark, Bell, User, MapPin, Briefcase, Building2,
   Loader2, AlertCircle, Trash2, ArrowRight, Pencil, Check,
   X, Phone, FileText, CheckCircle2, Upload, ExternalLink, Trash,
+  Star, DollarSign,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { useSavedJobs } from '../../context/SavedJobsContext'
-import { CATEGORIES, REGIONS } from '../../hooks/useJobs'
+import { CATEGORIES, REGIONS, JOB_TYPES } from '../../hooks/useJobs'
 
 const TYPE_LABELS = {
   'full-time': 'Full-time', 'part-time': 'Part-time', 'contract': 'Contract',
@@ -31,17 +32,18 @@ function timeAgo(dateStr) {
 }
 
 const NAV = [
-  { key: 'saved',   label: 'Saved Jobs', icon: Bookmark },
-  { key: 'profile', label: 'My Profile', icon: User },
-  { key: 'resume',  label: 'Resume',     icon: FileText },
-  { key: 'alerts',  label: 'Job Alerts', icon: Bell },
+  { key: 'recommended', label: 'Recommended', icon: Star },
+  { key: 'saved',       label: 'Saved Jobs',  icon: Bookmark },
+  { key: 'profile',     label: 'My Profile',  icon: User },
+  { key: 'resume',      label: 'Resume',      icon: FileText },
+  { key: 'alerts',      label: 'Job Alerts',  icon: Bell },
 ]
 
 export default function JobSeekerDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile } = useAuth()
   const { savedIds } = useSavedJobs()
-  const [section, setSection] = useState(searchParams.get('tab') ?? 'saved')
+  const [section, setSection] = useState(searchParams.get('tab') ?? 'recommended')
 
   const firstName = profile?.full_name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
 
@@ -106,10 +108,11 @@ export default function JobSeekerDashboard() {
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
-            {section === 'saved'   && <SavedSection />}
-            {section === 'profile' && <ProfileSection profile={profile} user={user} />}
-            {section === 'resume'  && <ResumeSection profile={profile} user={user} />}
-            {section === 'alerts'  && <AlertsSection user={user} profile={profile} />}
+            {section === 'recommended' && <RecommendedSection user={user} onSetPrefs={() => goTo('profile')} />}
+            {section === 'saved'       && <SavedSection />}
+            {section === 'profile'     && <ProfileSection profile={profile} user={user} />}
+            {section === 'resume'      && <ResumeSection profile={profile} user={user} />}
+            {section === 'alerts'      && <AlertsSection user={user} profile={profile} />}
           </div>
         </div>
       </div>
@@ -122,6 +125,160 @@ function Stat({ label, value }) {
     <div className="text-center">
       <p className="text-2xl font-extrabold">{value}</p>
       <p className="text-green-300 text-xs">{label}</p>
+    </div>
+  )
+}
+
+/* ── Recommended Jobs ──────────────────────────────────────── */
+function RecommendedSection({ user, onSetPrefs }) {
+  const [prefs, setPrefs] = useState(null)
+  const [jobs, setJobs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return }
+    async function load() {
+      const { data: seeker } = await supabase
+        .from('job_seekers')
+        .select('preferred_categories, preferred_job_types, preferred_regions')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!seeker) { setLoading(false); return }
+      setPrefs(seeker)
+
+      const cats    = seeker.preferred_categories ?? []
+      const types   = seeker.preferred_job_types  ?? []
+      const regions = seeker.preferred_regions    ?? []
+
+      if (cats.length === 0 && types.length === 0 && regions.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      let q = supabase
+        .from('jobs')
+        .select(`id, title, category, job_type, salary_min, salary_max, salary_type,
+                 city, region, created_at,
+                 employers ( company_name, logo_url, verified )`)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(12)
+
+      if (cats.length > 0)    q = q.in('category', cats)
+      if (types.length > 0)   q = q.in('job_type', types)
+      if (regions.length > 0) q = q.in('region', regions)
+
+      const { data, error: err } = await q
+      if (err) setError(err.message)
+      else setJobs(data ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [user])
+
+  if (loading) return <Spinner />
+  if (error)   return <ErrorBanner msg={error} />
+
+  const noPrefs = !prefs || (
+    (prefs.preferred_categories?.length ?? 0) === 0 &&
+    (prefs.preferred_job_types?.length  ?? 0) === 0 &&
+    (prefs.preferred_regions?.length    ?? 0) === 0
+  )
+
+  if (noPrefs) return (
+    <div>
+      <SectionHeader icon={Star} title="Recommended Jobs" sub="Jobs matched to your preferences" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
+        <div className="w-16 h-16 bg-green-100 border border-green-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Star size={24} className="text-green-600" />
+        </div>
+        <h3 className="font-bold text-slate-800 text-lg mb-2">Set your job preferences</h3>
+        <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">
+          Tell us what kind of work you're looking for and we'll show you matching jobs.
+        </p>
+        <button
+          onClick={onSetPrefs}
+          className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+        >
+          Set preferences in My Profile <ArrowRight size={15} />
+        </button>
+      </div>
+    </div>
+  )
+
+  if (jobs.length === 0) return (
+    <div>
+      <SectionHeader icon={Star} title="Recommended Jobs" sub="Jobs matched to your preferences" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Briefcase size={24} className="text-slate-300" />
+        </div>
+        <h3 className="font-bold text-slate-800 text-lg mb-2">No matches right now</h3>
+        <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">
+          There are no active jobs matching your preferences at the moment. Check back soon or browse all jobs.
+        </p>
+        <Link to="/jobs"
+          className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+          Browse all jobs <ArrowRight size={15} />
+        </Link>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      <SectionHeader icon={Star} title="Recommended Jobs" sub={`${jobs.length} job${jobs.length !== 1 ? 's' : ''} matching your preferences`} />
+      <div className="space-y-3">
+        {jobs.map((job) => (
+          <Link
+            key={job.id}
+            to={`/jobs/${job.id}`}
+            className="block bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-green-300 hover:shadow-md transition-all"
+          >
+            <div className="flex gap-4 items-start">
+              <div className="w-11 h-11 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                {job.employers?.logo_url
+                  ? <img src={job.employers.logo_url} alt="" className="w-full h-full object-contain p-1" />
+                  : <Building2 size={18} className="text-slate-400" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{job.title}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 mt-1">
+                      {job.employers && (
+                        <span className="flex items-center gap-1">
+                          <Briefcase size={11} />{job.employers.company_name}
+                          {job.employers.verified && <span className="text-green-600">✓</span>}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1"><MapPin size={11} />{job.region || job.city}, BC</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-400 shrink-0">{timeAgo(job.created_at)}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <span className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                    {TYPE_LABELS[job.job_type] || job.job_type}
+                  </span>
+                  <span className="text-xs text-slate-400">{job.category}</span>
+                  <span className="text-xs text-slate-500 ml-auto flex items-center gap-1">
+                    <DollarSign size={11} />{formatSalary(job.salary_min, job.salary_max, job.salary_type)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div className="mt-5 text-center">
+        <Link to="/jobs" className="text-sm font-medium text-green-700 hover:text-green-800 transition-colors">
+          Browse all jobs →
+        </Link>
+      </div>
     </div>
   )
 }
@@ -246,24 +403,51 @@ function ProfileSection({ profile, user }) {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    full_name: profile?.full_name ?? '',
-    phone:     profile?.phone    ?? '',
-    city:      profile?.city     ?? '',
-    bio:       profile?.bio      ?? '',
+    full_name:             profile?.full_name             ?? '',
+    phone:                 profile?.phone                 ?? '',
+    city:                  profile?.city                  ?? '',
+    bio:                   profile?.bio                   ?? '',
+    preferred_categories:  profile?.preferred_categories  ?? [],
+    preferred_job_types:   profile?.preferred_job_types   ?? [],
+    preferred_regions:     profile?.preferred_regions     ?? [],
   })
 
   useEffect(() => {
-    if (profile) setForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '', city: profile.city ?? '', bio: profile.bio ?? '' })
+    if (profile) setForm({
+      full_name:            profile.full_name            ?? '',
+      phone:                profile.phone                ?? '',
+      city:                 profile.city                 ?? '',
+      bio:                  profile.bio                  ?? '',
+      preferred_categories: profile.preferred_categories ?? [],
+      preferred_job_types:  profile.preferred_job_types  ?? [],
+      preferred_regions:    profile.preferred_regions    ?? [],
+    })
   }, [profile])
 
   function set(field, val) { setForm((f) => ({ ...f, [field]: val })); setSaved(false) }
+
+  function toggleArr(field, val) {
+    setForm((f) => ({
+      ...f,
+      [field]: f[field].includes(val) ? f[field].filter((x) => x !== val) : [...f[field], val],
+    }))
+    setSaved(false)
+  }
 
   async function handleSave() {
     if (!form.full_name.trim()) { setError('Full name is required.'); return }
     setError(''); setSaving(true)
     const { error: dbErr } = await supabase
       .from('job_seekers')
-      .update({ full_name: form.full_name.trim(), phone: form.phone.trim() || null, city: form.city.trim() || null, bio: form.bio.trim() || null })
+      .update({
+        full_name:            form.full_name.trim(),
+        phone:                form.phone.trim() || null,
+        city:                 form.city.trim() || null,
+        bio:                  form.bio.trim() || null,
+        preferred_categories: form.preferred_categories,
+        preferred_job_types:  form.preferred_job_types,
+        preferred_regions:    form.preferred_regions,
+      })
       .eq('user_id', user.id)
     if (dbErr) { setError(dbErr.message); setSaving(false); return }
     setSaving(false); setSaved(true); setEditing(false)
@@ -272,12 +456,23 @@ function ProfileSection({ profile, user }) {
 
   function handleCancel() {
     setEditing(false); setError('')
-    setForm({ full_name: profile?.full_name ?? '', phone: profile?.phone ?? '', city: profile?.city ?? '', bio: profile?.bio ?? '' })
+    setForm({
+      full_name:            profile?.full_name            ?? '',
+      phone:                profile?.phone                ?? '',
+      city:                 profile?.city                 ?? '',
+      bio:                  profile?.bio                  ?? '',
+      preferred_categories: profile?.preferred_categories ?? [],
+      preferred_job_types:  profile?.preferred_job_types  ?? [],
+      preferred_regions:    profile?.preferred_regions    ?? [],
+    })
   }
+
+  const hasPrefs =
+    (form.preferred_categories.length + form.preferred_job_types.length + form.preferred_regions.length) > 0
 
   return (
     <div>
-      <SectionHeader icon={User} title="My Profile" sub="Your personal details" />
+      <SectionHeader icon={User} title="My Profile" sub="Your personal details and job preferences" />
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -303,6 +498,7 @@ function ProfileSection({ profile, user }) {
           {error && <ErrorBanner msg={error} />}
           {editing ? (
             <>
+              {/* Basic details */}
               <Field label="Full name" required>
                 <input value={form.full_name} onChange={(e) => set('full_name', e.target.value)} className={INPUT} placeholder="Your full name" />
               </Field>
@@ -323,6 +519,65 @@ function ProfileSection({ profile, user }) {
               <Field label="Bio">
                 <textarea value={form.bio} onChange={(e) => set('bio', e.target.value)} rows={4} className={INPUT} placeholder="Tell employers a bit about yourself…" />
               </Field>
+
+              {/* Job preferences */}
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
+                  <Star size={14} className="text-green-600" /> Job Preferences
+                </p>
+                <p className="text-xs text-slate-400 mb-4">Used to match you with relevant job listings.</p>
+
+                <Field label="Preferred categories">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {CATEGORIES.map((cat) => {
+                      const on = form.preferred_categories.includes(cat)
+                      return (
+                        <label key={cat}
+                          className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer text-sm transition-colors select-none ${
+                            on ? 'border-green-400 bg-green-50 text-green-800' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                          }`}>
+                          <input type="checkbox" checked={on} onChange={() => toggleArr('preferred_categories', cat)} className="accent-green-700 shrink-0" />
+                          {cat}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </Field>
+
+                <Field label="Preferred job types">
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {JOB_TYPES.map(({ value, label }) => {
+                      const on = form.preferred_job_types.includes(value)
+                      return (
+                        <button key={value} type="button" onClick={() => toggleArr('preferred_job_types', value)}
+                          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                            on ? 'bg-green-700 text-white border-green-700' : 'bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-700'
+                          }`}>
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+
+                <Field label="Preferred regions">
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {REGIONS.map((r) => {
+                      const on = form.preferred_regions.includes(r)
+                      return (
+                        <button key={r} type="button" onClick={() => toggleArr('preferred_regions', r)}
+                          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                            on ? 'bg-green-700 text-white border-green-700' : 'bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-700'
+                          }`}>
+                          {r}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1.5">Leave blank to match jobs across all of Northern BC.</p>
+                </Field>
+              </div>
+
               <div className="flex items-center gap-3 pt-1">
                 <button onClick={handleSave} disabled={saving}
                   className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
@@ -341,6 +596,50 @@ function ProfileSection({ profile, user }) {
               <ProfileRow icon={Phone}    label="Phone"     value={profile?.phone} />
               <ProfileRow icon={MapPin}   label="City"      value={profile?.city ? `${profile.city}, BC` : null} />
               <ProfileRow icon={FileText} label="Bio"       value={profile?.bio} multiline />
+
+              {/* Job preferences view */}
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                  <Star size={12} className="text-green-600" /> Job Preferences
+                </p>
+                {hasPrefs ? (
+                  <div className="space-y-3">
+                    {form.preferred_categories.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1.5">Categories</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.preferred_categories.map((c) => (
+                            <span key={c} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {form.preferred_job_types.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1.5">Job types</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.preferred_job_types.map((t) => (
+                            <span key={t} className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{TYPE_LABELS[t] ?? t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {form.preferred_regions.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1.5">Regions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {form.preferred_regions.map((r) => (
+                            <span key={r} className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No preferences set — click Edit to add them.</p>
+                )}
+              </div>
+
               {saved && (
                 <p className="flex items-center gap-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
                   <CheckCircle2 size={15} className="shrink-0" /> Profile updated successfully.
@@ -388,62 +687,33 @@ function ResumeSection({ profile, user }) {
     if (!file) return
     if (file.type !== 'application/pdf') { setError('Only PDF files are accepted.'); return }
     if (file.size > 5 * 1024 * 1024) { setError('File must be under 5 MB.'); return }
-
     setError(''); setSuccess(''); setUploading(true); setProgress(10)
-
     const { error: upErr } = await supabase.storage
       .from('resumes')
       .upload(storagePath, file, { upsert: true, contentType: 'application/pdf' })
-
     if (upErr) { setError(upErr.message); setUploading(false); setProgress(0); return }
-
     setProgress(70)
-
     const { data: { publicUrl } } = supabase.storage.from('resumes').getPublicUrl(storagePath)
-
-    const { error: dbErr } = await supabase
-      .from('job_seekers')
-      .update({ resume_url: publicUrl })
-      .eq('user_id', user.id)
-
+    const { error: dbErr } = await supabase.from('job_seekers').update({ resume_url: publicUrl }).eq('user_id', user.id)
     if (dbErr) { setError(dbErr.message); setUploading(false); setProgress(0); return }
-
-    setResumeUrl(publicUrl)
-    setProgress(100)
-    setUploading(false)
+    setResumeUrl(publicUrl); setProgress(100); setUploading(false)
     setSuccess('Resume uploaded successfully.')
     setTimeout(() => { setSuccess(''); setProgress(0) }, 3000)
   }
 
   async function handleDelete() {
     setDeleting(true); setError(''); setSuccess('')
-
     await supabase.storage.from('resumes').remove([storagePath])
-
-    const { error: dbErr } = await supabase
-      .from('job_seekers')
-      .update({ resume_url: null })
-      .eq('user_id', user.id)
-
+    const { error: dbErr } = await supabase.from('job_seekers').update({ resume_url: null }).eq('user_id', user.id)
     if (dbErr) { setError(dbErr.message); setDeleting(false); return }
-
-    setResumeUrl(null)
-    setDeleting(false)
+    setResumeUrl(null); setDeleting(false)
     setSuccess('Resume removed.')
     setTimeout(() => setSuccess(''), 3000)
-  }
-
-  function onInputChange(e) { uploadFile(e.target.files[0]) }
-
-  function onDrop(e) {
-    e.preventDefault(); setDragOver(false)
-    uploadFile(e.dataTransfer.files[0])
   }
 
   return (
     <div>
       <SectionHeader icon={FileText} title="Resume" sub="Upload a PDF — visible to employers when you apply" />
-
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
         {error   && <ErrorBanner msg={error} />}
         {success && (
@@ -451,8 +721,6 @@ function ResumeSection({ profile, user }) {
             <CheckCircle2 size={15} className="shrink-0" /> {success}
           </p>
         )}
-
-        {/* Current resume */}
         {resumeUrl && (
           <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
             <div className="w-9 h-9 bg-red-50 border border-red-100 rounded-lg flex items-center justify-center shrink-0">
@@ -462,71 +730,40 @@ function ResumeSection({ profile, user }) {
               <p className="text-sm font-semibold text-slate-800 truncate">resume.pdf</p>
               <p className="text-xs text-slate-400">PDF document</p>
             </div>
-            <a
-              href={resumeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-            >
+            <a href={resumeUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">
               <ExternalLink size={12} /> View
             </a>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              title="Remove resume"
-              className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0 disabled:opacity-50"
-            >
+            <button onClick={handleDelete} disabled={deleting}
+              className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0 disabled:opacity-50">
               {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash size={15} />}
             </button>
           </div>
         )}
-
-        {/* Upload area */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); uploadFile(e.dataTransfer.files[0]) }}
           onClick={() => !uploading && fileRef.current?.click()}
           className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-colors ${
-            dragOver
-              ? 'border-green-400 bg-green-50'
-              : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
+            dragOver ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
           } ${uploading ? 'pointer-events-none opacity-70' : ''}`}
         >
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={onInputChange}
-          />
+          <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => uploadFile(e.target.files[0])} />
           <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            {uploading
-              ? <Loader2 size={22} className="text-green-600 animate-spin" />
-              : <Upload size={22} className="text-green-600" />
-            }
+            {uploading ? <Loader2 size={22} className="text-green-600 animate-spin" /> : <Upload size={22} className="text-green-600" />}
           </div>
           <p className="text-sm font-semibold text-slate-700 mb-1">
             {uploading ? 'Uploading…' : resumeUrl ? 'Replace resume' : 'Upload your resume'}
           </p>
-          <p className="text-xs text-slate-400">
-            {uploading ? '' : 'Drag & drop or click to browse · PDF only · Max 5 MB'}
-          </p>
-
-          {/* Progress bar */}
+          <p className="text-xs text-slate-400">{uploading ? '' : 'Drag & drop or click to browse · PDF only · Max 5 MB'}</p>
           {uploading && progress > 0 && (
             <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="h-full bg-green-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>
-
-        <p className="text-xs text-slate-400">
-          Your resume is stored securely and only shared when you choose to apply for a job.
-        </p>
+        <p className="text-xs text-slate-400">Your resume is stored securely and only shared when you choose to apply for a job.</p>
       </div>
     </div>
   )
@@ -545,11 +782,7 @@ function AlertsSection({ user, profile }) {
 
   useEffect(() => {
     if (!user?.email) { setLoadingExisting(false); return }
-    supabase
-      .from('job_alerts')
-      .select('*')
-      .eq('email', user.email)
-      .maybeSingle()
+    supabase.from('job_alerts').select('*').eq('email', user.email).maybeSingle()
       .then(({ data }) => {
         if (data) { setExisting(data); setSelectedCats(data.categories ?? []); setSelectedRegions(data.regions ?? []) }
         setLoadingExisting(false)
@@ -586,7 +819,6 @@ function AlertsSection({ user, profile }) {
             <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setSaved(false) }}
               placeholder="you@example.com" className={INPUT} />
           </Field>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
               Job categories <span className="text-red-400 text-xs">*</span>
@@ -611,7 +843,6 @@ function AlertsSection({ user, profile }) {
               })}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Regions <span className="ml-1 text-slate-400 font-normal text-xs">optional — leave blank for all of Northern BC</span>
@@ -630,7 +861,6 @@ function AlertsSection({ user, profile }) {
               })}
             </div>
           </div>
-
           <div className="flex items-center gap-4 pt-1">
             <button type="submit" disabled={saving}
               className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors">
