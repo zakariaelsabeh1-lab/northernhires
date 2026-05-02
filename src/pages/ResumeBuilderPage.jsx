@@ -373,6 +373,12 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
               </label>
             </FormSection>
 
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Your information is stored securely and never shared without your consent.{' '}
+              <a href="/privacy" className="text-green-700 hover:text-green-800 underline underline-offset-2">Privacy Policy</a>
+            </div>
+
             <button type="submit" disabled={generating}
               className="w-full flex items-center justify-center gap-2.5 bg-green-700 hover:bg-green-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base px-8 py-4 rounded-xl transition-colors">
               {generating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}

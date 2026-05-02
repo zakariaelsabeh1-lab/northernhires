@@ -18,6 +18,9 @@ import PostJobPage from './pages/employer/PostJobPage'
 import EmployersLandingPage from './pages/employer/EmployersLandingPage'
 import AboutPage from './pages/AboutPage'
 import ResumeBuilderPage from './pages/ResumeBuilderPage'
+import PrivacyPage from './pages/PrivacyPage'
+import TermsPage from './pages/TermsPage'
+import CookieBanner from './components/CookieBanner'
 
 function PlaceholderPage({ title }) {
   return (
@@ -35,6 +38,7 @@ export default function App() {
     <BrowserRouter>
       <div className="flex flex-col min-h-screen">
         <Navbar />
+        <CookieBanner />
         <main className="flex-1">
           <Routes>
             {/* Public */}
@@ -75,7 +79,8 @@ export default function App() {
             <Route path="/profile" element={<PlaceholderPage title="My Profile" />} />
             <Route path="/pricing" element={<Navigate to="/employers" replace />} />
             <Route path="/contact" element={<PlaceholderPage title="Contact" />} />
-            <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="/forgot-password" element={<PlaceholderPage title="Reset Password" />} />
           </Routes>
         </main>
