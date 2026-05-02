@@ -201,11 +201,6 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* ── Application form modal ── */}
-          {showApplyForm && (
-            <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
-          )}
-
           {/* ── Sidebar ── */}
           <aside className="lg:w-72 shrink-0 space-y-5 lg:sticky lg:top-24 self-start">
             {/* Company card */}
@@ -265,6 +260,11 @@ export default function JobDetailPage() {
         </div>
       </div>
     </div>
+
+    {showApplyForm && (
+      <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
+    )}
+  </div>
   )
 }
 
