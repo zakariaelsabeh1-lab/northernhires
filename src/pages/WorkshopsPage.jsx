@@ -5,31 +5,31 @@ const WORKSHOPS = [
     title: 'Job Interview Skills',
     description: 'Learn how to prepare for interviews with confidence. Covers common interview questions, the STAR method for behavioural responses, how to research employers, and what to do before, during, and after your interview.',
     duration: '45 min',
-    url: 'https://www.canada.ca/en/employment-social-development/programs/skills-success.html',
+    url: 'https://upskillsforwork.ca/resources/',
   },
   {
     title: 'Resume and Cover Letter Writing',
     description: 'Build a resume that gets noticed. This workshop walks you through formatting, tailoring your resume to job postings, writing a compelling cover letter, and avoiding the most common mistakes that cost candidates interviews.',
     duration: '60 min',
-    url: 'https://www.jobbank.gc.ca/findajob/resources/write-a-resume',
+    url: 'https://www.jobbank.gc.ca/findajob/resume-builder',
   },
   {
     title: 'Life Skills for the Workplace',
     description: 'Develop the foundational skills employers look for beyond technical ability. Topics include time management, professional boundaries, personal responsibility, self-advocacy, and navigating workplace expectations in Northern BC.',
     duration: '50 min',
-    url: 'https://www.canada.ca/en/employment-social-development/programs/skills-success.html',
+    url: 'https://upskillsforwork.ca/resources/',
   },
   {
     title: 'Workplace Communication',
     description: 'Communicate clearly and professionally on the job. Covers verbal and written communication, giving and receiving feedback, resolving conflict respectfully, and adapting your communication style in diverse work environments.',
     duration: '40 min',
-    url: 'https://www.canada.ca/en/employment-social-development/programs/skills-success.html',
+    url: 'https://upskillsforwork.ca/resources/',
   },
   {
     title: 'Financial Literacy for Job Seekers',
     description: 'Understand your pay, benefits, and finances when starting or changing jobs. Topics include reading your pay stub, understanding deductions and taxes, budgeting on a variable income, and accessing financial support programs.',
     duration: '55 min',
-    url: 'https://www.canada.ca/en/financial-consumer-agency/services/financial-literacy.html',
+    url: 'https://itools-ioutils.fcac-acfc.gc.ca/BP-PB/pages/introduction-introduction.aspx',
   },
 ]
 
