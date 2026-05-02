@@ -731,7 +731,7 @@ function AiResumeCard({ user }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {aiResume && (
+          {aiResume ? (
             <>
               <button onClick={handlePrint}
                 className="flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
@@ -741,12 +741,17 @@ function AiResumeCard({ user }) {
                 className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete
               </button>
+              <Link to="/resume-builder"
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">
+                Rebuild
+              </Link>
             </>
+          ) : (
+            <Link to="/resume-builder"
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">
+              Build Resume
+            </Link>
           )}
-          <Link to="/resume-builder"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">
-            {aiResume ? 'Rebuild' : 'Build Resume'}
-          </Link>
         </div>
       </div>
       {loading ? (
