@@ -682,33 +682,59 @@ function ProfileSection({ profile, user }) {
 }
 
 function AiResumeCard({ user }) {
-  const [aiResume, setAiResume] = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [deleting, setDeleting] = useState(false)
+  const [aiResume, setAiResume]     = useState(null)
+  const [seekerName, setSeekerName] = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [deleting, setDeleting]     = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
     supabase
       .from('job_seekers')
-      .select('ai_resume')
+      .select('ai_resume, full_name')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => { setAiResume(data?.ai_resume ?? null); setLoading(false) })
+      .then(({ data }) => {
+        setAiResume(data?.ai_resume ?? null)
+        setSeekerName(data?.full_name ?? '')
+        setLoading(false)
+      })
   }, [user])
 
   function handlePrint() {
+    if (!aiResume) return
+    const slug = (seekerName.trim() || 'Resume').replace(/\s+/g, '_')
+    const prev = document.title
+    document.title = `${slug}_Resume`
+
+    const printArea = document.createElement('div')
+    printArea.id = 'resume-print-area'
+    printArea.innerHTML = aiResume
+    document.body.appendChild(printArea)
+
     const style = document.createElement('style')
-    style.id = 'ai-resume-print-style'
+    style.id = 'resume-print-style'
     style.textContent = `
+      @page { margin: 0; size: A4; }
       @media print {
-        * { visibility: hidden !important; }
-        #ai-resume-preview, #ai-resume-preview * { visibility: visible !important; }
-        #ai-resume-preview { position: fixed !important; top: 0; left: 0; width: 100%; background: white; }
+        body > *:not(#resume-print-area) { display: none !important; }
+        #resume-print-area {
+          display: block !important;
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%;
+          background: white;
+        }
       }
+      #resume-print-area { display: none; }
     `
     document.head.appendChild(style)
     window.print()
-    setTimeout(() => { document.getElementById('ai-resume-print-style')?.remove() }, 500)
+    setTimeout(() => {
+      document.getElementById('resume-print-style')?.remove()
+      document.getElementById('resume-print-area')?.remove()
+      document.title = prev
+    }, 500)
   }
 
   async function handleDelete() {
@@ -759,7 +785,7 @@ function AiResumeCard({ user }) {
           <span className="text-sm">Loading…</span>
         </div>
       ) : aiResume ? (
-        <div id="ai-resume-preview" className="overflow-auto max-h-[600px]" dangerouslySetInnerHTML={{ __html: aiResume }} />
+        <div className="overflow-auto max-h-[600px]" dangerouslySetInnerHTML={{ __html: aiResume }} />
       ) : (
         <div className="flex flex-col items-center justify-center py-10 text-center px-6">
           <Sparkles size={22} className="text-slate-300 mb-3" />

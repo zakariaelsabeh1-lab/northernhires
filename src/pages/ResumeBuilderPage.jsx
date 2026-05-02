@@ -52,11 +52,39 @@ export default function ResumeBuilderPage() {
   function removeEdu(idx) { setForm(f => ({ ...f, education: f.education.filter((_, i) => i !== idx) })) }
 
   function handlePrint() {
+    if (!resume) return
     const slug = form.fullName.trim().replace(/\s+/g, '_') || 'Resume'
     const prev = document.title
     document.title = `${slug}_Resume`
+
+    const printArea = document.createElement('div')
+    printArea.id = 'resume-print-area'
+    printArea.innerHTML = resume
+    document.body.appendChild(printArea)
+
+    const style = document.createElement('style')
+    style.id = 'resume-print-style'
+    style.textContent = `
+      @page { margin: 0; size: A4; }
+      @media print {
+        body > *:not(#resume-print-area) { display: none !important; }
+        #resume-print-area {
+          display: block !important;
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%;
+          background: white;
+        }
+      }
+      #resume-print-area { display: none; }
+    `
+    document.head.appendChild(style)
     window.print()
-    setTimeout(() => { document.title = prev }, 500)
+    setTimeout(() => {
+      document.getElementById('resume-print-style')?.remove()
+      document.getElementById('resume-print-area')?.remove()
+      document.title = prev
+    }, 500)
   }
 
   async function handleGenerate(e) {
@@ -206,20 +234,6 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Print CSS: visibility approach so the resume div is always in DOM */}
-      <style>{`
-        @media print {
-          * { visibility: hidden !important; }
-          #resume-output, #resume-output * { visibility: visible !important; }
-          #resume-output {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
-            width: 100% !important;
-            background: white !important;
-          }
-        }
-      `}</style>
-
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 flex items-center gap-3">
