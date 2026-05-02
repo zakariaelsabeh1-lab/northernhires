@@ -555,6 +555,24 @@ export default function EmployerDashboard() {
 }
 
 function ApplicantRow({ app, expanded, onToggle, onStatusChange }) {
+  const isAiResume = app.resume_url?.includes('_ai.html')
+  const [aiResumeHtml, setAiResumeHtml] = useState(null)
+  const [aiResumeLoading, setAiResumeLoading] = useState(false)
+  const [showAiResume, setShowAiResume] = useState(false)
+
+  async function toggleAiResume() {
+    setShowAiResume(s => !s)
+    if (aiResumeHtml || aiResumeLoading) return
+    setAiResumeLoading(true)
+    try {
+      const res = await fetch(app.resume_url)
+      setAiResumeHtml(await res.text())
+    } catch {
+      setAiResumeHtml('<p style="color:#ef4444;padding:16px">Failed to load resume.</p>')
+    }
+    setAiResumeLoading(false)
+  }
+
   return (
     <div className="px-6 py-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -587,7 +605,6 @@ function ApplicantRow({ app, expanded, onToggle, onStatusChange }) {
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-slate-400">{timeAgo(app.created_at)}</span>
 
-          {/* Status dropdown */}
           <select
             value={app.status}
             onChange={(e) => onStatusChange(e.target.value)}
@@ -598,20 +615,29 @@ function ApplicantRow({ app, expanded, onToggle, onStatusChange }) {
             ))}
           </select>
 
-          {/* Resume link */}
+          {/* Resume: AI resume renders inline; PDF/DOC opens externally */}
           {app.resume_url && (
-            <a
-              href={app.resume_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 text-slate-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
-              title="View resume"
-            >
-              <FileText size={15} />
-            </a>
+            isAiResume ? (
+              <button
+                onClick={toggleAiResume}
+                className={`p-1.5 rounded-lg transition-colors ${showAiResume ? 'text-green-700 bg-green-50' : 'text-slate-400 hover:text-green-700 hover:bg-green-50'}`}
+                title={showAiResume ? 'Hide AI resume' : 'View AI resume'}
+              >
+                {aiResumeLoading ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+              </button>
+            ) : (
+              <a
+                href={app.resume_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 text-slate-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                title="View resume"
+              >
+                <FileText size={15} />
+              </a>
+            )
           )}
 
-          {/* Expand toggle */}
           {app.cover_letter && (
             <button
               onClick={onToggle}
@@ -624,7 +650,22 @@ function ApplicantRow({ app, expanded, onToggle, onStatusChange }) {
         </div>
       </div>
 
-      {/* Expanded cover letter */}
+      {/* Inline AI resume */}
+      {showAiResume && isAiResume && (
+        <div className="mt-3 ml-12 rounded-xl border border-slate-200 overflow-hidden">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 pt-3 pb-2 bg-slate-50 border-b border-slate-100">AI-Generated Resume</p>
+          {aiResumeLoading ? (
+            <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
+              <Loader2 size={15} className="animate-spin text-green-600" />
+              <span className="text-sm">Loading…</span>
+            </div>
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: aiResumeHtml }} />
+          )}
+        </div>
+      )}
+
+      {/* Cover letter */}
       {expanded && app.cover_letter && (
         <div className="mt-3 ml-12 bg-slate-50 rounded-xl p-4 border border-slate-100">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Cover Letter</p>
