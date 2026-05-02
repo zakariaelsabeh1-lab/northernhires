@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, FileText, Building2
+  ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, FileText, Building2, Sparkles
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -17,7 +17,9 @@ export default function ApplyPage() {
 
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', years_of_experience: '', cover_letter: '' })
   const [resumeFile, setResumeFile] = useState(null)
-  const [useProfileResume, setUseProfileResume] = useState(false)
+  const [resumeSource, setResumeSource] = useState(null) // 'uploaded' | 'ai' | 'new'
+  const [aiResume, setAiResume] = useState(null)
+  const [aiResumeLoading, setAiResumeLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
@@ -39,12 +41,24 @@ export default function ApplyPage() {
   }, [id])
 
   useEffect(() => {
+    if (!user) { setAiResumeLoading(false); return }
+    supabase.from('job_seekers').select('ai_resume').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => { setAiResume(data?.ai_resume ?? null); setAiResumeLoading(false) })
+  }, [user])
+
+  useEffect(() => {
     if (profile) {
       setForm(prev => ({ ...prev, full_name: profile.full_name || '', phone: profile.phone || '' }))
-      if (profile.resume_url) setUseProfileResume(true)
     }
     if (user) setForm(prev => ({ ...prev, email: user.email || '' }))
   }, [profile, user])
+
+  useEffect(() => {
+    if (!profile || aiResumeLoading) return
+    if (profile.resume_url) setResumeSource('uploaded')
+    else if (aiResume) setResumeSource('ai')
+    else setResumeSource('new')
+  }, [profile, aiResume, aiResumeLoading])
 
   useEffect(() => {
     if (!user || !profile || !job) return
@@ -69,9 +83,20 @@ export default function ApplyPage() {
     setError(null)
 
     try {
-      let resumeUrl = useProfileResume ? (profile.resume_url || null) : null
+      let resumeUrl = null
 
-      if (resumeFile && !useProfileResume) {
+      if (resumeSource === 'uploaded') {
+        resumeUrl = profile.resume_url || null
+      } else if (resumeSource === 'ai' && aiResume) {
+        const blob = new Blob([aiResume], { type: 'text/html' })
+        const path = `${user.id}/${job.id}_ai.html`
+        const { error: uploadError } = await supabase.storage
+          .from('application-resumes')
+          .upload(path, blob, { upsert: true, contentType: 'text/html' })
+        if (uploadError) throw new Error('AI resume upload failed: ' + uploadError.message)
+        const { data: urlData } = supabase.storage.from('application-resumes').getPublicUrl(path)
+        resumeUrl = urlData.publicUrl
+      } else if (resumeSource === 'new' && resumeFile) {
         const ext = resumeFile.name.split('.').pop()
         const path = `${user.id}/${job.id}.${ext}`
         const { error: uploadError } = await supabase.storage
@@ -286,34 +311,62 @@ export default function ApplyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Resume</label>
-              {profile?.resume_url && (
-                <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox" checked={useProfileResume}
-                    onChange={(e) => { setUseProfileResume(e.target.checked); if (e.target.checked) setResumeFile(null) }}
-                    className="w-4 h-4 accent-green-600"
-                  />
-                  <FileText size={14} className="text-slate-400 shrink-0" />
-                  <span className="text-sm text-slate-700">Use resume from my profile</span>
-                </label>
-              )}
-              {!useProfileResume && (
-                <>
-                  <input
-                    ref={fileInputRef} type="file" accept=".pdf,.doc,.docx"
-                    onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                    className="hidden" disabled={!user}
-                  />
-                  <button
-                    type="button" onClick={() => fileInputRef.current?.click()} disabled={!user}
-                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-green-400 rounded-xl py-5 text-sm text-slate-500 hover:text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Upload size={16} />
-                    {resumeFile ? resumeFile.name : 'Upload PDF, DOC, or DOCX'}
-                  </button>
-                </>
-              )}
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Resume</label>
+              {!user || aiResumeLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-400 py-2">
+                  <Loader2 size={14} className="animate-spin" /> Loading resume options…
+                </div>
+              ) : (() => {
+                const hasUploaded = !!profile?.resume_url
+                const hasAi = !!aiResume
+                return (
+                  <div className="space-y-2">
+                    {!hasUploaded && !hasAi && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 mb-2">
+                        No saved resume found.{' '}
+                        <Link to="/dashboard/jobseeker?tab=resume" className="font-semibold underline">Upload a PDF</Link>
+                        {' '}or{' '}
+                        <Link to="/resume-builder" className="font-semibold underline">build one with AI</Link>
+                        {' '}— or upload a file below.
+                      </div>
+                    )}
+                    {hasUploaded && (
+                      <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors select-none ${resumeSource === 'uploaded' ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
+                        <input type="radio" name="resumeSource" value="uploaded" checked={resumeSource === 'uploaded'}
+                          onChange={() => { setResumeSource('uploaded'); setResumeFile(null) }} className="accent-green-600 shrink-0" />
+                        <FileText size={14} className="text-slate-400 shrink-0" />
+                        <span className="text-sm text-slate-700">Uploaded PDF resume</span>
+                      </label>
+                    )}
+                    {hasAi && (
+                      <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors select-none ${resumeSource === 'ai' ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
+                        <input type="radio" name="resumeSource" value="ai" checked={resumeSource === 'ai'}
+                          onChange={() => { setResumeSource('ai'); setResumeFile(null) }} className="accent-green-600 shrink-0" />
+                        <Sparkles size={14} className="text-green-600 shrink-0" />
+                        <span className="text-sm text-slate-700">AI-generated resume</span>
+                      </label>
+                    )}
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors select-none ${resumeSource === 'new' ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <input type="radio" name="resumeSource" value="new" checked={resumeSource === 'new'}
+                        onChange={() => setResumeSource('new')} className="accent-green-600 shrink-0" />
+                      <Upload size={14} className="text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700">Upload a different file</span>
+                    </label>
+                    {resumeSource === 'new' && (
+                      <>
+                        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx"
+                          onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                          className="hidden" disabled={!user} />
+                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!user}
+                          className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-green-400 rounded-xl py-4 text-sm text-slate-500 hover:text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1">
+                          <Upload size={16} />
+                          {resumeFile ? resumeFile.name : 'Upload PDF, DOC, or DOCX'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {error && (
