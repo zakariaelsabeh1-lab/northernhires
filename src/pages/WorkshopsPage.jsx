@@ -43,13 +43,13 @@ const CANADA_RESOURCES = [
   {
     label: 'Job Bank Skills Matching',
     description: 'Match your skills to in-demand occupations and explore career pathways across Canada.',
-    url: 'https://www.jobbank.gc.ca/skillsmatch',
+    url: 'https://www.jobbank.gc.ca/jobsearch/jobsearch',
     host: 'jobbank.gc.ca',
   },
   {
     label: 'Career Navigator',
     description: 'Plan your career path with guided tools, labour market information, and training resources.',
-    url: 'https://www.canada.ca/en/employment-social-development/programs/careers.html',
+    url: 'https://www.jobbank.gc.ca/career-planning/index',
     host: 'canada.ca',
   },
 ]
