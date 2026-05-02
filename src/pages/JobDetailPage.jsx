@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import SaveButton from '../components/SaveButton'
-import ApplicationForm from '../components/ApplicationForm'
 import { useAuth } from '../context/AuthContext'
 
 const TYPE_LABELS = {
@@ -41,7 +40,6 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [copied, setCopied] = useState(false)
-  const [showApplyForm, setShowApplyForm] = useState(false)
 
   useEffect(() => {
     async function fetchJob() {
@@ -166,12 +164,12 @@ export default function JobDetailPage() {
                     Employer account — cannot apply
                   </div>
                 ) : (
-                  <button
-                    onClick={() => { console.log('Apply Now clicked'); setShowApplyForm(true) }}
+                  <Link
+                    to={`/jobs/${id}/apply`}
                     className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
                   >
                     Apply Now
-                  </button>
+                  </Link>
                 )}
                 <button
                   onClick={handleShare}
@@ -260,9 +258,6 @@ export default function JobDetailPage() {
         </div>
       </div>
 
-      {showApplyForm && (
-        <ApplicationForm job={job} onClose={() => setShowApplyForm(false)} />
-      )}
     </div>
   )
 }
