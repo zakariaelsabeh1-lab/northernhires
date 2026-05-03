@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import {
   MapPin,
   Search,
@@ -29,62 +31,20 @@ const JOB_CATEGORIES = [
   { icon: Building2, label: 'Office & Admin', count: 14 },
 ]
 
-const RECENT_JOBS = [
-  {
-    id: 1,
-    title: 'Heavy Equipment Operator',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Full-time',
-    posted: 'Today',
-    tag: 'Trades',
-  },
-  {
-    id: 2,
-    title: 'Registered Nurse',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Full-time',
-    posted: 'Today',
-    tag: 'Healthcare',
-  },
-  {
-    id: 3,
-    title: 'CDL Truck Driver',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Full-time',
-    posted: 'Today',
-    tag: 'Trucking',
-  },
-  {
-    id: 4,
-    title: 'Early Childhood Educator',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Part-time',
-    posted: 'Today',
-    tag: 'Education',
-  },
-  {
-    id: 5,
-    title: 'Welder',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Full-time',
-    posted: 'Today',
-    tag: 'Trades',
-  },
-  {
-    id: 6,
-    title: 'Hotel Front Desk Agent',
-    company: 'Northern BC Employer',
-    location: 'Prince George, BC',
-    type: 'Part-time',
-    posted: 'Today',
-    tag: 'Hospitality',
-  },
-]
+const [recentJobs, setRecentJobs] = useState([])
+
+useEffect(() => {
+  const fetchRecentJobs = async () => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('id, title, city, job_type, category')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(6)
+    if (!error && data) setRecentJobs(data)
+  }
+  fetchRecentJobs()
+}, [])
 
 const TAG_COLORS = {
   Trades: 'bg-amber-100 text-amber-800',
@@ -300,7 +260,7 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-3">
-            {RECENT_JOBS.map((job) => (
+            {recentJobs.map((job) => (
               <Link
                 key={job.id}
                 to={`/jobs/${job.id}`}
@@ -318,24 +278,23 @@ export default function HomePage() {
                       {job.title}
                     </h3>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TAG_COLORS[job.tag] || 'bg-slate-100 text-slate-600'}`}>
-                      {job.tag}
+                      {job.category}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 flex-wrap">
-                    <span>{job.company}</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin size={12} className="shrink-0" />
-                      {job.location}
-                    </span>
-                  </div>
-                </div>
+  <span>Northern BC Employer</span>
+  <span className="flex items-center gap-1">
+    <MapPin size={12} className="shrink-0" />
+    {job.city}, BC
+  </span>
+</div>
 
                 {/* Meta */}
                 <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 shrink-0">
                   <span className="bg-green-50 border border-green-200 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full">
-                    {job.type}
+                    {job.job_type}
                   </span>
-                  <span className="text-xs text-slate-400">{job.posted}</span>
+                  <span className="text-xs text-slate-400">{'Today'}</span>
                 </div>
               </Link>
             ))}
