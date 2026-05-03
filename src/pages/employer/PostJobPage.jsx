@@ -125,7 +125,7 @@ export default function PostJobPage() {
 
   const salaryPrefix = form.salaryType === 'hourly' ? '$/hr' : form.salaryType === 'annual' ? '$/yr' : ''
 
-  if (!employerProfile?.plan || employerProfile.plan === 'none') return <Navigate to="/pricing" replace />
+  if (!employerProfile?.plan || employerProfile.plan === 'none') return <Navigate to="/pricing?scroll=pricing" replace />
 
   return (
     <div className="min-h-screen bg-slate-50">

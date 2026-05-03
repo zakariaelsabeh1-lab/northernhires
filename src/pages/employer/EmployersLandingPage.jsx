@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   MapPin, CheckCircle, Building2, Users, Eye, Zap,
   ArrowRight, Star, Clock, DollarSign, Tag, X,
@@ -38,6 +38,13 @@ const TESTIMONIALS = [
 export default function EmployersLandingPage() {
   const { user, employerProfile, refreshEmployerProfile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('scroll') === 'pricing') {
+      document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [location.search])
   const [promoInput, setPromoInput] = useState('')
   const [promoApplied, setPromoApplied] = useState(false)
   const [promoError, setPromoError] = useState(false)
@@ -180,7 +187,7 @@ export default function EmployersLandingPage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="py-16 bg-slate-50">
+      <section id="pricing-section" className="py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">Simple, honest pricing</h2>
