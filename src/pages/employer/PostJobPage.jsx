@@ -24,6 +24,19 @@ export default function PostJobPage() {
   const { employerProfile } = useAuth()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    if (!employerProfile) return
+    const hasPlan = employerProfile.plan && employerProfile.plan !== 'none'
+    const pending = localStorage.getItem('nh_pending_plan')
+    if (hasPlan) return
+    if (pending === 'beta') {
+      supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
+        .then(() => localStorage.removeItem('nh_pending_plan'))
+    } else {
+      navigate('/pricing')
+    }
+  }, [employerProfile, navigate])
+
   const [form, setForm] = useState({
     title: '',
     category: '',

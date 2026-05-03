@@ -40,6 +40,11 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }
 
+  async function refreshEmployerProfile(userId) {
+    const { data } = await supabase.from('employers').select('*').eq('user_id', userId).maybeSingle()
+    setEmployerProfile(data)
+  }
+
   // Job seeker sign-up
   async function signUp({ email, password, fullName, city }) {
     const { data, error } = await supabase.auth.signUp({ email, password })
@@ -88,7 +93,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, profile, employerProfile, loading,
-      signUp, signUpEmployer, signIn, signOut,
+      signUp, signUpEmployer, signIn, signOut, refreshEmployerProfile,
     }}>
       {children}
     </AuthContext.Provider>

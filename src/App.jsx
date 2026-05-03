@@ -77,7 +77,7 @@ export default function App() {
             {/* Placeholders */}
             <Route path="/about" element={<AboutPage />} />
             <Route path="/profile" element={<PlaceholderPage title="My Profile" />} />
-            <Route path="/pricing" element={<Navigate to="/employers" replace />} />
+            <Route path="/pricing" element={<EmployersLandingPage />} />
             <Route path="/contact" element={<PlaceholderPage title="Contact" />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />

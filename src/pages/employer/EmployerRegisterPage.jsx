@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Building2 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 
 const CITIES = [
@@ -48,7 +49,14 @@ export default function EmployerRegisterPage() {
         phone: form.phone.trim() || null,
         website: form.website.trim() || null,
       })
-      if (data.session) navigate('/employers/dashboard', { replace: true })
+      if (data.session) {
+        const pending = localStorage.getItem('nh_pending_plan')
+        if (pending === 'beta') {
+          await supabase.from('employers').update({ plan: 'beta' }).eq('user_id', data.user.id)
+          localStorage.removeItem('nh_pending_plan')
+        }
+        navigate('/employers/dashboard', { replace: true })
+      }
       else setConfirmed(true)
     } catch (err) {
       setError(err.message ?? 'Sign up failed. Please try again.')

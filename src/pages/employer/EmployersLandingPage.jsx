@@ -4,6 +4,7 @@ import {
   MapPin, CheckCircle, Building2, Users, Eye, Zap,
   ArrowRight, Star, Clock, DollarSign, Tag, X,
 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 
 const PROMO_CODE = 'NORTHERN2026'
@@ -35,11 +36,12 @@ const TESTIMONIALS = [
 ]
 
 export default function EmployersLandingPage() {
-  const { user, employerProfile } = useAuth()
+  const { user, employerProfile, refreshEmployerProfile } = useAuth()
   const navigate = useNavigate()
   const [promoInput, setPromoInput] = useState('')
   const [promoApplied, setPromoApplied] = useState(false)
   const [promoError, setPromoError] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   function applyPromo() {
     if (promoInput.trim().toUpperCase() === PROMO_CODE) {
@@ -49,6 +51,20 @@ export default function EmployersLandingPage() {
       setPromoError(true)
       setPromoApplied(false)
     }
+  }
+
+  async function handleFreeClaim() {
+    setClaiming(true)
+    localStorage.setItem('nh_pending_plan', 'beta')
+    if (employerProfile) {
+      await supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
+      await refreshEmployerProfile(user.id)
+      localStorage.removeItem('nh_pending_plan')
+      navigate('/employers/post-job')
+    } else {
+      navigate(user ? '/employers/dashboard' : '/employers/register')
+    }
+    setClaiming(false)
   }
 
   return (
@@ -216,7 +232,8 @@ export default function EmployersLandingPage() {
               cta="Post a job"
               href="https://buy.stripe.com/test_4gM4gA9QydTf8Ic0jS7EQ01"
               freeMode={promoApplied}
-              onFreeClaim={() => navigate(employerProfile ? '/employers/post-job' : '/employers/register')}
+              claiming={claiming}
+              onFreeClaim={handleFreeClaim}
             />
             <PricingCard
               name="3-Pack"
@@ -297,7 +314,7 @@ export default function EmployersLandingPage() {
   )
 }
 
-function PricingCard({ name, price, period, features, cta, href, highlight = false, freeMode = false, onFreeClaim }) {
+function PricingCard({ name, price, period, features, cta, href, highlight = false, freeMode = false, claiming = false, onFreeClaim }) {
   const btnClass = highlight
     ? 'bg-white text-green-900 hover:bg-green-50'
     : 'bg-green-700 text-white hover:bg-green-800'
@@ -317,9 +334,10 @@ function PricingCard({ name, price, period, features, cta, href, highlight = fal
       {freeMode ? (
         <button
           onClick={onFreeClaim}
-          className={`block w-full text-center font-semibold text-sm px-5 py-3 rounded-xl transition-colors ${btnClass}`}
+          disabled={claiming}
+          className={`block w-full text-center font-semibold text-sm px-5 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${btnClass}`}
         >
-          Claim Free Post →
+          {claiming ? 'Activating…' : 'Claim Free Post →'}
         </button>
       ) : (
         <a
