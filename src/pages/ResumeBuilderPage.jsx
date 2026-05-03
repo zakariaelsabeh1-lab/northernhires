@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Trash2, Loader2, Download, ArrowLeft, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -20,6 +20,34 @@ function stripMarkdown(text) {
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth()
+
+  const ACCESS_CODE = 'NHHBETA2026'
+  const LS_KEY = 'nh_resume_access'
+  const [codeUnlocked, setCodeUnlocked] = useState(() => localStorage.getItem(LS_KEY) === ACCESS_CODE)
+  const [codeInput, setCodeInput] = useState('')
+  const [codeError, setCodeError] = useState('')
+
+  function handleCodeSubmit(e) {
+    e.preventDefault()
+    if (codeInput.trim().toUpperCase() === ACCESS_CODE) {
+      localStorage.setItem(LS_KEY, ACCESS_CODE)
+      setCodeUnlocked(true)
+    } else {
+      setCodeError('Invalid access code. Please try again.')
+    }
+  }
+
+  const [genCount, setGenCount] = useState(null)
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('job_seekers').select('ai_resume_generations').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => setGenCount(data?.ai_resume_generations ?? 0))
+  }, [user])
+
+  const LIMIT = 2
+  const limitReached = genCount !== null && genCount >= LIMIT
+
   const [form, setForm] = useState({
     fullName:    '',
     email:       '',
@@ -89,6 +117,7 @@ export default function ResumeBuilderPage() {
 
   async function handleGenerate(e) {
     e.preventDefault()
+    if (limitReached) return
     if (!form.fullName.trim() || !form.targetTitle.trim()) {
       setError('Please fill in at least your full name and target job title.')
       return
@@ -219,11 +248,15 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
       setResume(html)
 
       if (user) {
+        const newCount = (genCount ?? 0) + 1
         const { error: dbErr } = await supabase
           .from('job_seekers')
-          .update({ ai_resume: html })
+          .update({ ai_resume: html, ai_resume_generations: newCount })
           .eq('user_id', user.id)
-        if (!dbErr) setSaved(true)
+        if (!dbErr) {
+          setSaved(true)
+          setGenCount(newCount)
+        }
       }
     } catch (err) {
       setError(err.message ?? 'Failed to generate resume. Please try again.')
@@ -250,7 +283,49 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {!resume ? (
+        {!codeUnlocked ? (
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+              <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={22} className="text-green-700" />
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 mb-1">Enter your access code</h2>
+              <p className="text-slate-500 text-sm mb-6">The AI Resume Builder is in early access. Enter your beta code to continue.</p>
+              <form onSubmit={handleCodeSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  value={codeInput}
+                  onChange={e => { setCodeInput(e.target.value); setCodeError('') }}
+                  placeholder="e.g. NHHBETA2026"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors text-center tracking-widest font-mono uppercase"
+                />
+                {codeError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-3 py-2.5">
+                    <AlertCircle size={14} className="shrink-0" /> {codeError}
+                  </div>
+                )}
+                <button type="submit"
+                  className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold text-sm py-3 rounded-xl transition-colors">
+                  Unlock Resume Builder
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : limitReached ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 text-center">
+            <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={24} className="text-amber-500" />
+            </div>
+            <h2 className="text-lg font-extrabold text-slate-900 mb-2">Resume limit reached</h2>
+            <p className="text-slate-500 text-sm max-w-sm mx-auto">
+              You have reached your resume generation limit for the beta period.
+            </p>
+            <Link to="/dashboard/jobseeker"
+              className="inline-flex items-center gap-2 mt-6 text-sm font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-200 px-5 py-2.5 rounded-xl transition-colors">
+              Back to dashboard
+            </Link>
+          </div>
+        ) : !resume ? (
           <form onSubmit={handleGenerate} className="space-y-6">
             {error && (
               <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4">
