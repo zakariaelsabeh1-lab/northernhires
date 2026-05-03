@@ -296,7 +296,7 @@ Write 3–4 achievement-focused bullet points per job. Write a strong 2–3 sent
                   type="text"
                   value={codeInput}
                   onChange={e => { setCodeInput(e.target.value); setCodeError('') }}
-                  placeholder="e.g. NHHBETA2026"
+                  placeholder="Enter access code"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors text-center tracking-widest font-mono uppercase"
                 />
                 {codeError && (
