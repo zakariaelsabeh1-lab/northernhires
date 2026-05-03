@@ -279,7 +279,7 @@ export default function HomePage() {
                     <h3 className="font-semibold text-slate-900 group-hover:text-green-800 transition-colors text-base">
                       {job.title}
                     </h3>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TAG_COLORS[job.tag] || 'bg-slate-100 text-slate-600'}`}>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TAG_COLORS[job.category] || 'bg-slate-100 text-slate-600'}`}>
                       {job.category}
                     </span>
                   </div>
