@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Info, Users } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Info, Users, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { CATEGORIES, REGIONS, JOB_TYPES } from '../../hooks/useJobs'
@@ -20,22 +20,45 @@ const APPLY_METHODS = [
 const INPUT = 'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors bg-white'
 const LABEL = 'block text-sm font-medium text-slate-700 mb-1.5'
 
+const PROMO_CODE = 'NORTHERN2026'
+
 export default function PostJobPage() {
   const { employerProfile } = useAuth()
   const navigate = useNavigate()
 
+  const [planReady, setPlanReady] = useState(null) // null=loading, true=active, false=needs plan
+  const [promoInput, setPromoInput] = useState('')
+  const [promoError, setPromoError] = useState('')
+  const [promoApplying, setPromoApplying] = useState(false)
+
   useEffect(() => {
     if (!employerProfile) return
-    const hasPlan = employerProfile.plan && employerProfile.plan !== 'none'
-    const pending = localStorage.getItem('nh_pending_plan')
-    if (hasPlan) return
-    if (pending === 'beta') {
-      supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
-        .then(() => localStorage.removeItem('nh_pending_plan'))
-    } else {
-      navigate('/pricing')
+    supabase.from('employers').select('plan').eq('id', employerProfile.id).maybeSingle()
+      .then(({ data }) => {
+        const plan = data?.plan ?? 'none'
+        if (plan !== 'none') { setPlanReady(true); return }
+        const pending = localStorage.getItem('nh_pending_plan')
+        if (pending === 'beta') {
+          supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
+            .then(() => { localStorage.removeItem('nh_pending_plan'); setPlanReady(true) })
+        } else {
+          setPlanReady(false)
+        }
+      })
+  }, [employerProfile])
+
+  async function handlePromoSubmit(e) {
+    e.preventDefault()
+    if (promoInput.trim().toUpperCase() !== PROMO_CODE) {
+      setPromoError('Invalid promo code. Please try again.')
+      return
     }
-  }, [employerProfile, navigate])
+    setPromoApplying(true)
+    const { error } = await supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
+    if (error) { setPromoError('Failed to apply code. Please try again.'); setPromoApplying(false); return }
+    setPlanReady(true)
+    setPromoApplying(false)
+  }
 
   const [form, setForm] = useState({
     title: '',
@@ -159,6 +182,50 @@ export default function PostJobPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        {planReady === null && (
+          <div className="flex justify-center py-16">
+            <Loader2 size={24} className="animate-spin text-slate-400" />
+          </div>
+        )}
+
+        {planReady === false && (
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Tag size={22} className="text-amber-600" />
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 mb-1">A plan is required to post jobs</h2>
+              <p className="text-slate-500 text-sm mb-6">
+                During beta, enter promo code <span className="font-semibold text-slate-700">NORTHERN2026</span> for free access, or visit the pricing page for paid plans.
+              </p>
+              <form onSubmit={handlePromoSubmit} className="space-y-3 text-left">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError('') }}
+                  placeholder="Enter promo code"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors uppercase tracking-widest font-mono text-center"
+                />
+                {promoError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-3 py-2.5">
+                    <AlertCircle size={14} className="shrink-0" /> {promoError}
+                  </div>
+                )}
+                <button type="submit" disabled={promoApplying}
+                  className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                  {promoApplying && <Loader2 size={15} className="animate-spin" />}
+                  {promoApplying ? 'Activating…' : 'Apply Code & Continue'}
+                </button>
+              </form>
+              <p className="mt-4 text-xs text-slate-400">
+                Want a paid plan?{' '}
+                <Link to="/pricing" className="text-green-700 hover:underline font-medium">View pricing →</Link>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {planReady === true && <>
         {submitError && (
           <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4 mb-6">
             <AlertCircle size={16} className="shrink-0" />
@@ -367,6 +434,7 @@ export default function PostJobPage() {
             </Link>
           </div>
         </form>
+        </>}
       </div>
     </div>
   )
