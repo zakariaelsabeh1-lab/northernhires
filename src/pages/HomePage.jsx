@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabase'
 import {
   MapPin,
   Search,
@@ -42,20 +42,25 @@ const TAG_COLORS = {
   Forestry: 'bg-green-100 text-green-800',
 }
 
+function timeAgo(dateStr) {
+  const d = Math.floor((Date.now() - new Date(dateStr)) / 86400000)
+  if (d < 1) return 'Today'
+  if (d === 1) return 'Yesterday'
+  return `${d}d ago`
+}
+
 export default function HomePage() {
   const [recentJobs, setRecentJobs] = useState([])
+  const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
-    const fetchRecentJobs = async () => {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('id, title, city, job_type, category')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(6)
-      if (!error && data) setRecentJobs(data)
-    }
-    fetchRecentJobs()
+    supabase
+      .from('jobs')
+      .select('id, title, city, region, job_type, category, created_at, employers(company_name)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => { setRecentJobs(data ?? []); setJobsLoading(false) })
   }, [])
 
   return (
@@ -262,18 +267,22 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-3">
+            {jobsLoading && (
+              <div className="text-center py-10 text-slate-400 text-sm">Loading latest jobs…</div>
+            )}
+            {!jobsLoading && recentJobs.length === 0 && (
+              <div className="text-center py-10 text-slate-400 text-sm">No active listings right now — check back soon.</div>
+            )}
             {recentJobs.map((job) => (
               <Link
                 key={job.id}
                 to={`/jobs/${job.id}`}
                 className="group bg-white hover:bg-green-50 border border-slate-200 hover:border-green-300 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-3 transition-all duration-200 shadow-sm"
               >
-                {/* Company avatar */}
                 <div className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
                   <Briefcase size={18} className="text-slate-500" />
                 </div>
 
-                {/* Job info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-2 flex-wrap">
                     <h3 className="font-semibold text-slate-900 group-hover:text-green-800 transition-colors text-base">
@@ -284,19 +293,19 @@ export default function HomePage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 flex-wrap">
-  <span>Northern BC Employer</span>
-  <span className="flex items-center gap-1">
-    <MapPin size={12} className="shrink-0" />
-    {job.city}, BC
-  </span>
-</div>
+                    {job.employers?.company_name && <span>{job.employers.company_name}</span>}
+                    <span className="flex items-center gap-1">
+                      <MapPin size={12} className="shrink-0" />
+                      {job.city || job.region}, BC
+                    </span>
+                  </div>
+                </div>
 
-                {/* Meta */}
                 <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 shrink-0">
                   <span className="bg-green-50 border border-green-200 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full">
                     {job.job_type}
                   </span>
-                  <span className="text-xs text-slate-400">{'Today'}</span>
+                  <span className="text-xs text-slate-400">{timeAgo(job.created_at)}</span>
                 </div>
               </Link>
             ))}
