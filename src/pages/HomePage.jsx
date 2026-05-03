@@ -31,20 +31,7 @@ const JOB_CATEGORIES = [
   { icon: Building2, label: 'Office & Admin', count: 14 },
 ]
 
-const [recentJobs, setRecentJobs] = useState([])
 
-useEffect(() => {
-  const fetchRecentJobs = async () => {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('id, title, city, job_type, category')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(6)
-    if (!error && data) setRecentJobs(data)
-  }
-  fetchRecentJobs()
-}, [])
 
 const TAG_COLORS = {
   Trades: 'bg-amber-100 text-amber-800',
@@ -56,6 +43,21 @@ const TAG_COLORS = {
 }
 
 export default function HomePage() {
+  const [recentJobs, setRecentJobs] = useState([])
+
+  useEffect(() => {
+    const fetchRecentJobs = async () => {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('id, title, city, job_type, category')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(6)
+      if (!error && data) setRecentJobs(data)
+    }
+    fetchRecentJobs()
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Hero ── */}
