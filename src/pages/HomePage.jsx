@@ -33,55 +33,55 @@ const RECENT_JOBS = [
   {
     id: 1,
     title: 'Heavy Equipment Operator',
-    company: 'Canfor',
+    company: 'Northern BC Employer',
     location: 'Prince George, BC',
     type: 'Full-time',
-    posted: '2 hours ago',
+    posted: 'Today',
     tag: 'Trades',
   },
   {
     id: 2,
-    title: 'Registered Nurse — ICU',
-    company: 'University Hospital of Northern BC',
+    title: 'Registered Nurse',
+    company: 'Northern BC Employer',
     location: 'Prince George, BC',
     type: 'Full-time',
-    posted: '5 hours ago',
+    posted: 'Today',
     tag: 'Healthcare',
   },
   {
     id: 3,
-    title: 'Long Haul Truck Driver',
-    company: 'Northern Freight Ltd.',
+    title: 'CDL Truck Driver',
+    company: 'Northern BC Employer',
     location: 'Prince George, BC',
     type: 'Full-time',
-    posted: '8 hours ago',
+    posted: 'Today',
     tag: 'Trucking',
   },
   {
     id: 4,
-    title: 'Elementary School Teacher',
-    company: 'SD57 Prince George',
+    title: 'Early Childhood Educator',
+    company: 'Northern BC Employer',
     location: 'Prince George, BC',
-    type: 'Contract',
-    posted: '1 day ago',
+    type: 'Part-time',
+    posted: 'Today',
     tag: 'Education',
   },
   {
     id: 5,
-    title: 'Millwright',
-    company: 'Interfor Corporation',
-    location: 'Vanderhoof, BC',
+    title: 'Welder',
+    company: 'Northern BC Employer',
+    location: 'Prince George, BC',
     type: 'Full-time',
-    posted: '1 day ago',
+    posted: 'Today',
     tag: 'Trades',
   },
   {
     id: 6,
-    title: 'Restaurant Manager',
-    company: 'White Goat Brewing',
+    title: 'Hotel Front Desk Agent',
+    company: 'Northern BC Employer',
     location: 'Prince George, BC',
-    type: 'Full-time',
-    posted: '2 days ago',
+    type: 'Part-time',
+    posted: 'Today',
     tag: 'Hospitality',
   },
 ]
@@ -469,17 +469,17 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
-                quote:
-                  'We posted a millwright position and had 8 qualified local applicants within 3 days. Couldn\'t get that on Indeed without paying for sponsored posts.',
-                name: 'Sarah K.',
-                role: 'HR Manager, Northland Forest Products',
-              },
-              {
-                quote:
-                  'Finally a job board that doesn\'t show me jobs in Kelowna when I search Prince George. Every listing here is within driving distance.',
-                name: 'Mike T.',
-                role: 'Heavy Equipment Operator',
-              },
+      quote:
+        'Simple to post and easy to manage. Great way to reach local candidates without the noise of the big job boards.',
+      name: 'Test Employer A',
+      role: 'Hiring Manager, Prince George',
+    },
+    {
+      quote:
+        'All the jobs are actually local. No relocations, no out-of-province postings. Exactly what I was looking for.',
+      name: 'Test User B',
+      role: 'Job Seeker, Prince George',
+    },
             ].map(({ quote, name, role }) => (
               <div key={name} className="bg-white rounded-2xl p-7 border border-slate-200 shadow-sm text-left">
                 <div className="flex gap-1 mb-4">

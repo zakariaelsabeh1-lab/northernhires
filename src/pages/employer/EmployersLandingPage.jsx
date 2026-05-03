@@ -25,12 +25,12 @@ const FEATURES = [
 
 const TESTIMONIALS = [
   {
-    quote: 'We posted a millwright position and had 8 qualified local applicants within three days. Couldn\'t do that on Indeed without paying for sponsored posts.',
-    name: 'Sarah K.', role: 'HR Manager, Northland Forest Products',
+    quote: 'Simple to post and easy to manage. Great way to reach local candidates without the noise of the big job boards.',
+    name: 'Test Employer A', role: 'Hiring Manager, Prince George',
   },
   {
-    quote: 'The view counts alone are worth it. I can see which listings are getting traction and which ones need a new title before wasting the full 30-day window.',
-    name: 'Greg M.', role: 'Operations Manager, Pacific Aggregate',
+    quote: 'The view counts are useful. I can see which listings are getting traction before the 30-day window runs out.',
+    name: 'Test Employer B', role: 'Operations Manager, Prince George',
   },
 ]
 
