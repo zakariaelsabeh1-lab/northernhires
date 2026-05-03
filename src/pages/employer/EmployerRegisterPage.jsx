@@ -10,7 +10,7 @@ const CITIES = [
 ]
 
 export default function EmployerRegisterPage() {
-  const { signUpEmployer } = useAuth()
+  const { signUpEmployer, refreshEmployerProfile } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -54,6 +54,7 @@ export default function EmployerRegisterPage() {
         if (pending === 'beta') {
           await supabase.from('employers').update({ plan: 'beta' }).eq('user_id', data.user.id)
           localStorage.removeItem('nh_pending_plan')
+          await refreshEmployerProfile(data.user.id)
         }
         navigate('/employers/dashboard', { replace: true })
       }

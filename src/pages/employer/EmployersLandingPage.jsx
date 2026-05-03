@@ -43,27 +43,28 @@ export default function EmployersLandingPage() {
   const [promoError, setPromoError] = useState(false)
   const [claiming, setClaiming] = useState(false)
 
-  function applyPromo() {
-    if (promoInput.trim().toUpperCase() === PROMO_CODE) {
-      setPromoApplied(true)
-      setPromoError(false)
-    } else {
+  async function applyPromo() {
+    if (promoInput.trim().toUpperCase() !== PROMO_CODE) {
       setPromoError(true)
       setPromoApplied(false)
+      return
+    }
+    setPromoError(false)
+    if (employerProfile) {
+      setClaiming(true)
+      await supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
+      await refreshEmployerProfile(user.id)
+      navigate('/employers/post-job')
+    } else {
+      localStorage.setItem('nh_pending_plan', 'beta')
+      setPromoApplied(true)
     }
   }
 
   async function handleFreeClaim() {
     setClaiming(true)
     localStorage.setItem('nh_pending_plan', 'beta')
-    if (employerProfile) {
-      await supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
-      await refreshEmployerProfile(user.id)
-      localStorage.removeItem('nh_pending_plan')
-      navigate('/employers/post-job')
-    } else {
-      navigate(user ? '/employers/dashboard' : '/employers/register')
-    }
+    navigate(user ? '/employers/register' : '/employers/register')
     setClaiming(false)
   }
 

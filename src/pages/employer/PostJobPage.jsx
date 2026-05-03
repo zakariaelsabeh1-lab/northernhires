@@ -24,24 +24,6 @@ export default function PostJobPage() {
   const { employerProfile } = useAuth()
   const navigate = useNavigate()
 
-  const [planReady, setPlanReady] = useState(null) // null=checking, true=ok, false=no plan
-
-  useEffect(() => {
-    if (!employerProfile) return
-    supabase.from('employers').select('plan').eq('id', employerProfile.id).maybeSingle()
-      .then(({ data }) => {
-        const plan = data?.plan ?? 'none'
-        if (plan !== 'none') { setPlanReady(true); return }
-        const pending = localStorage.getItem('nh_pending_plan')
-        if (pending === 'beta') {
-          supabase.from('employers').update({ plan: 'beta' }).eq('id', employerProfile.id)
-            .then(() => { localStorage.removeItem('nh_pending_plan'); setPlanReady(true) })
-        } else {
-          setPlanReady(false)
-        }
-      })
-  }, [employerProfile])
-
   const [form, setForm] = useState({
     title: '',
     category: '',
@@ -143,12 +125,7 @@ export default function PostJobPage() {
 
   const salaryPrefix = form.salaryType === 'hourly' ? '$/hr' : form.salaryType === 'annual' ? '$/yr' : ''
 
-  if (planReady === null) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <Loader2 size={24} className="animate-spin text-slate-400" />
-    </div>
-  )
-  if (planReady === false) return <Navigate to="/pricing" replace />
+  if (!employerProfile?.plan || employerProfile.plan === 'none') return <Navigate to="/pricing" replace />
 
   return (
     <div className="min-h-screen bg-slate-50">
