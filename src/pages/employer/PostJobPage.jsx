@@ -5,6 +5,12 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { CATEGORIES, REGIONS, JOB_TYPES } from '../../hooks/useJobs'
 
+const NORTHERN_BC_CITIES = [
+  'Prince George', 'Vanderhoof', 'Fort St. James', 'Burns Lake', 'Smithers',
+  'Terrace', 'Prince Rupert', 'Kitimat', 'Houston', 'Mackenzie', 'Fort Nelson',
+  'Dawson Creek', 'Chetwynd', 'Tumbler Ridge', 'McBride', 'Valemount',
+]
+
 const APPLY_METHODS = [
   { value: 'site', label: 'On NorthernHires', desc: 'Applicants apply through this site' },
   { value: 'url', label: 'External link', desc: 'Redirect to your own application page' },
@@ -239,12 +245,13 @@ export default function PostJobPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={LABEL}>City <Required /></label>
-                <input
-                  type="text"
+                <select
                   value={form.city}
                   onChange={(e) => set('city', e.target.value)}
                   className={INPUT}
-                />
+                >
+                  {NORTHERN_BC_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               <div>
                 <label className={LABEL}>Region <Required /></label>

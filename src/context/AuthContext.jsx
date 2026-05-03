@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
   }
 
   // Job seeker sign-up
-  async function signUp({ email, password, fullName }) {
+  async function signUp({ email, password, fullName, city }) {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
     if (data.user) {
@@ -50,6 +50,9 @@ export function AuthProvider({ children }) {
         p_full_name: fullName,
       })
       if (profileError) throw profileError
+      if (city) {
+        await supabase.from('job_seekers').update({ city }).eq('user_id', data.user.id)
+      }
     }
     return data
   }

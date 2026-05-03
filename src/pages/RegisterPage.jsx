@@ -3,6 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { MapPin, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
+const NORTHERN_BC_CITIES = [
+  'Prince George', 'Vanderhoof', 'Fort St. James', 'Burns Lake', 'Smithers',
+  'Terrace', 'Prince Rupert', 'Kitimat', 'Houston', 'Mackenzie', 'Fort Nelson',
+  'Dawson Creek', 'Chetwynd', 'Tumbler Ridge', 'McBride', 'Valemount',
+]
+
 const PERKS = [
   'Save jobs and apply with one click',
   'Get email alerts for new local jobs',
@@ -16,7 +22,7 @@ export default function RegisterPage() {
   const location = useLocation()
   const from = location.state?.from ?? '/jobs'
 
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '' })
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '', city: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,6 +35,7 @@ export default function RegisterPage() {
 
   function validate() {
     if (!form.fullName.trim()) return 'Please enter your full name.'
+    if (!form.city) return 'Please select your city.'
     if (!form.email) return 'Please enter your email address.'
     if (form.password.length < 8) return 'Password must be at least 8 characters.'
     if (form.password !== form.confirm) return 'Passwords do not match.'
@@ -46,6 +53,7 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         fullName: form.fullName.trim(),
+        city: form.city,
       })
       // If email confirmation is disabled in Supabase, user is signed in immediately.
       // If it's enabled, data.user exists but session is null until email is confirmed.
@@ -131,6 +139,17 @@ export default function RegisterPage() {
                 placeholder="Jane Smith"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors"
               />
+            </Field>
+
+            <Field label="Your city">
+              <select
+                value={form.city}
+                onChange={(e) => set('city', e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-colors bg-white"
+              >
+                <option value="">Select your city…</option>
+                {NORTHERN_BC_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </Field>
 
             <Field label="Email address">
