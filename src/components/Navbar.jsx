@@ -46,6 +46,9 @@ export default function Navbar() {
             <span className="font-bold text-xl text-slate-900">
               Northern<span className="text-green-700">Hires</span>
             </span>
+            <span className="text-xs font-bold bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full leading-none">
+              BETA
+            </span>
           </Link>
 
           {/* Desktop nav */}
